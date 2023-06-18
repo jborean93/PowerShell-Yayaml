@@ -1,139 +1,213 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.IO;
 using System.Management.Automation;
+using System.Text;
+using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
 namespace Yayaml.Shared;
 
-internal sealed class YamlConverter
-{
-    public bool WasTruncated { get; set; }
+// internal sealed class YamlConverter
+// {
+//     public bool WasTruncated { get; set; }
 
-    public YamlConverter()
-    { }
+//     public YamlConverter()
+//     { }
 
-    public object? ConvertToYamlObject(object? inputObject, int depth)
-    {
-        if (inputObject == null)
-        {
-            return "";
-        }
+//     public object? ConvertToYamlObject(object? inputObject, int depth)
+//     {
+//         if (inputObject == null)
+//         {
+//             return "";
+//         }
 
-        if (depth < 0)
-        {
-            WasTruncated = true;
-            return inputObject?.ToString() ?? "";
-        }
+//         if (depth < 0)
+//         {
+//             WasTruncated = true;
+//             return inputObject?.ToString() ?? "";
+//         }
 
-        return inputObject switch
-        {
-            IDictionary dict => ConvertToTomlTable(dict, depth),
-            Array array => ConvertToTomlArray(array, depth),
-            _ => ConvertToTomlFriendlyObject(inputObject, depth),
-        };
-    }
+//         return inputObject switch
+//         {
+//             IDictionary dict => ConvertToTomlTable(dict, depth),
+//             Array array => ConvertToTomlArray(array, depth),
+//             _ => ConvertToTomlFriendlyObject(inputObject, depth),
+//         };
+//     }
 
-    private List<object?> ConvertToTomlArray(Array array, int depth)
-    {
-        List<object?> result = new();
+//     private List<object?> ConvertToTomlArray(Array array, int depth)
+//     {
+//         List<object?> result = new();
 
-        foreach (object value in array)
-        {
-            result.Add(ConvertToYamlObject(value, depth - 1));
-        }
+//         foreach (object value in array)
+//         {
+//             result.Add(ConvertToYamlObject(value, depth - 1));
+//         }
 
-        return result;
-    }
+//         return result;
+//     }
 
-    private Dictionary<object, object?> ConvertToTomlTable(IDictionary dict, int depth)
-    {
-        Dictionary<object, object?> model = new();
-        foreach (DictionaryEntry entry in dict)
-        {
-            object? value = ConvertToYamlObject(entry.Value ?? "", depth - 1);
-            model.Add(entry.Key, value);
-        }
+//     private Dictionary<object, object?> ConvertToTomlTable(IDictionary dict, int depth)
+//     {
+//         Dictionary<object, object?> model = new();
+//         foreach (DictionaryEntry entry in dict)
+//         {
+//             object? value = ConvertToYamlObject(entry.Value ?? "", depth - 1);
+//             model.Add(entry.Key, value);
+//         }
 
-        return model;
-    }
+//         return model;
+//     }
 
-    private object? ConvertToTomlFriendlyObject(object? obj, int depth)
-    {
-        if (obj is PSObject psObj)
-        {
-            obj = psObj.BaseObject;
-        }
-        else
-        {
-            psObj = PSObject.AsPSObject(obj);
-        }
+//     private object? ConvertToTomlFriendlyObject(object? obj, int depth)
+//     {
+//         if (obj is PSObject psObj)
+//         {
+//             obj = psObj.BaseObject;
+//         }
+//         else
+//         {
+//             psObj = PSObject.AsPSObject(obj);
+//         }
 
-        if (obj is char || obj is Guid)
-        {
-            return obj.ToString() ?? "";
-        }
-        else if (obj is Enum enumObj)
-        {
-            return Convert.ChangeType(enumObj, enumObj.GetTypeCode());
-        }
+//         if (obj is char || obj is Guid)
+//         {
+//             return obj.ToString() ?? "";
+//         }
+//         else if (obj is Enum enumObj)
+//         {
+//             return Convert.ChangeType(enumObj, enumObj.GetTypeCode());
+//         }
 
-        if (
-            obj is bool ||
-            obj is DateTime ||
-            obj is DateTimeOffset ||
-            obj is sbyte ||
-            obj is byte ||
-            obj is Int16 ||
-            obj is UInt16 ||
-            obj is Int32 ||
-            obj is UInt32 ||
-            obj is Int64 ||
-            obj is UInt64 ||
-            obj is float ||
-            obj is double ||
-            obj is string
-        )
-        {
-            return obj;
-        }
+//         if (
+//             obj is bool ||
+//             obj is DateTime ||
+//             obj is DateTimeOffset ||
+//             obj is sbyte ||
+//             obj is byte ||
+//             obj is Int16 ||
+//             obj is UInt16 ||
+//             obj is Int32 ||
+//             obj is UInt32 ||
+//             obj is Int64 ||
+//             obj is UInt64 ||
+//             obj is float ||
+//             obj is double ||
+//             obj is string
+//         )
+//         {
+//             return obj;
+//         }
 
-        Dictionary<object, object?> model = new();
-        foreach (PSPropertyInfo prop in psObj.Properties)
-        {
-            object? propValue = null;
-            try
-            {
-                propValue = prop.Value;
-            }
-            catch (GetValueInvocationException e)
-            {
-                propValue = e.Message;
-            }
+//         Dictionary<object, object?> model = new();
+//         foreach (PSPropertyInfo prop in psObj.Properties)
+//         {
+//             object? propValue = null;
+//             try
+//             {
+//                 propValue = prop.Value;
+//             }
+//             catch (GetValueInvocationException e)
+//             {
+//                 propValue = e.Message;
+//             }
 
-            model[prop.Name] = ConvertToYamlObject(propValue, depth - 1);
-        }
+//             model[prop.Name] = ConvertToYamlObject(propValue, depth - 1);
+//         }
 
-        return model;
-    }
-}
+//         return model;
+//     }
+// }
 
 public static class YAMLLib
 {
-    public static object ConvertFromYaml(string yaml)
+    public static List<object?> ConvertFromYaml(string yaml)
     {
         DeserializerBuilder builder = new DeserializerBuilder();
+        IDeserializer deserializer = builder.Build();
 
-        return builder.Build().Deserialize(yaml);
+        using StringReader reader = new(yaml);
+        Parser parser = new(reader);
+        MergingParser mergingParser = new(parser);
+        YamlStream yamlStream = new();
+        yamlStream.Load(mergingParser);
+
+        List<object?> results = new();
+        foreach (YamlDocument entry in yamlStream)
+        {
+            results.Add(ConvertFromYamlNode(entry.RootNode));
+        }
+
+        return results;
+    }
+
+    private static object? ConvertFromYamlNode(YamlNode node) => node switch
+    {
+        null => null,
+        YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping),
+        YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence),
+        YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar),
+        _ => throw new NotImplementedException(""),
+    };
+
+    private static OrderedDictionary ConvertFromYamlMappingNode(YamlMappingNode node)
+    {
+        OrderedDictionary res = new();
+        foreach (KeyValuePair<YamlNode, YamlNode> kvp in node)
+        {
+            object? key = ConvertFromYamlNode(kvp.Key);
+            object? value = ConvertFromYamlNode(kvp.Value);
+            res[key ?? ""] = value;
+        }
+
+        return res;
+    }
+
+    private static object?[] ConvertFromYamlSequenceNode(YamlSequenceNode node)
+    {
+        List<object?> res = new();
+        foreach (YamlNode childNode in node)
+        {
+            res.Add(ConvertFromYamlNode(childNode));
+        }
+
+        return res.ToArray();
+    }
+
+    private static object? ConvertFromYamlScalarNode(YamlScalarNode node)
+    {
+        string tagValue = "";
+        try
+        {
+            tagValue = node.Tag.Value;
+        }
+        catch (InvalidOperationException)
+        { }
+
+        return tagValue switch
+        {
+            "tag:yaml.org,2022:str" => node.Value,
+            _ => ConvertFromYamlScalarUntaggedValue(node.Value),
+        };
+    }
+
+    private static object? ConvertFromYamlScalarUntaggedValue(string? value)
+    {
+        return value;
     }
 
     public static string ConvertToYaml(object? inputObject, int depth, out bool wasTruncated)
     {
-        YamlConverter converter = new();
-        object? finalObject = converter.ConvertToYamlObject(inputObject, depth);
-        wasTruncated = converter.WasTruncated;
+        // YamlConverter converter = new();
+        // object? finalObject = converter.ConvertToYamlObject(inputObject, depth);
+        // wasTruncated = converter.WasTruncated;
+        wasTruncated = false;
 
         SerializerBuilder builder = new SerializerBuilder();
-        return builder.Build().Serialize(finalObject);
+        return builder.Build().Serialize(inputObject);
     }
 }

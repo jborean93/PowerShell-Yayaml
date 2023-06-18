@@ -1,14 +1,12 @@
-using Yayaml.Shared;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Management.Automation;
 using System.Text;
+using Yayaml.Shared;
 
 namespace Yayaml;
 
 [Cmdlet(VerbsData.ConvertFrom, "Yaml")]
-// [OutputType(typeof(OrderedDictionary))]
 public sealed class ConvertFromYamlCommand : PSCmdlet
 {
     private StringBuilder _inputValues = new();
@@ -22,6 +20,9 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     [AllowEmptyString]
     public string[] InputObject { get; set; } = Array.Empty<string>();
 
+    [Parameter]
+    public SwitchParameter NoEnumerate { get; set; }
+
     protected override void ProcessRecord()
     {
         foreach (string toml in InputObject)
@@ -33,23 +34,18 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     protected override void EndProcessing()
     {
         string yaml = _inputValues.ToString();
-        // TomlTable table;
-        // try
-        // {
-        //     table = TOMLLib.ConvertFromToml(toml);
-        // }
-        // catch (Exception e)
-        // {
-        //     WriteError(new ErrorRecord(
-        //         e,
-        //         "ParseError",
-        //         ErrorCategory.NotSpecified,
-        //         toml
-        //     ));
-        //     return;
-        // }
+        List<object?> obj = YAMLLib.ConvertFromYaml(yaml);
 
-        // OrderedDictionary result = ConvertToOrderedDictionary(table);
-        // WriteObject(result);
+        if (NoEnumerate)
+        {
+            WriteObject(obj.ToArray());
+        }
+        else
+        {
+            foreach (object? entry in obj)
+            {
+                WriteObject(entry);
+            }
+        }
     }
 }
