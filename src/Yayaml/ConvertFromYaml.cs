@@ -42,7 +42,8 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     public SwitchParameter NoEnumerate { get; set; }
 
     [Parameter]
-    [SchemaTransformer]
+    [YamlSchemaCompletions]
+    [SchemaParameterTransformer]
     public YamlSchema? Schema { get; set; }
 
     protected override void ProcessRecord()
@@ -55,14 +56,18 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
 
     protected override void EndProcessing()
     {
-        YamlSchema schema = Schema ?? new Yaml12();
-        Dictionary<string, Func<string, object?>> schemaTags = schema.GetSchema();
+        YamlSchema schema = Schema ?? YamlSchema.CreateDefault();
+        YamlTransformer transformer = new YamlTransformer(
+            schema.ParseMap,
+            schema.ParseScalar,
+            schema.ParseSequence
+        );
 
         string yaml = _inputValues.ToString();
         List<object?> obj;
         try
         {
-            obj = YAMLLib.ConvertFromYaml(yaml, schemaTags);
+            obj = YAMLLib.ConvertFromYaml(yaml, transformer);
         }
         catch (YamlParseException e)
         {

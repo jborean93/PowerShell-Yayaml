@@ -148,7 +148,7 @@ public class YamlParseException : FormatException
 public static class YAMLLib
 {
     public static List<object?> ConvertFromYaml(string yaml,
-        Dictionary<string, Func<string, object?>> schemaTags)
+        YamlTransformer transformer)
     {
         DeserializerBuilder builder = new DeserializerBuilder();
         IDeserializer deserializer = builder.Build();
@@ -169,7 +169,7 @@ public static class YAMLLib
         List<object?> results = new();
         foreach (YamlDocument entry in yamlStream)
         {
-            results.Add(ConvertFromYamlNode(entry.RootNode, schemaTags));
+            results.Add(ConvertFromYamlNode(entry.RootNode, transformer));
         }
 
         return results;
@@ -188,57 +188,50 @@ public static class YAMLLib
 
 
     private static object? ConvertFromYamlNode(YamlNode node,
-        Dictionary<string, Func<string, object?>> schemaTags) => node switch
-    {
-        null => null,
-        YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping, schemaTags),
-        YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence, schemaTags),
-        YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar, schemaTags),
-        _ => throw new NotImplementedException(""),
-    };
+        YamlTransformer transformer) => node switch
+        {
+            null => null,
+            YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping, transformer),
+            YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence, transformer),
+            YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar, transformer),
+            _ => throw new NotImplementedException(""),
+        };
 
-    private static OrderedDictionary ConvertFromYamlMappingNode(YamlMappingNode node,
-        Dictionary<string, Func<string, object?>> schemaTags)
+    private static object? ConvertFromYamlMappingNode(YamlMappingNode node,
+        YamlTransformer transformer)
     {
-        OrderedDictionary res = new();
+        List<KeyValuePair<object?, object?>> res = new();
         foreach (KeyValuePair<YamlNode, YamlNode> kvp in node)
         {
-            object? key = ConvertFromYamlNode(kvp.Key, schemaTags);
-            object? value = ConvertFromYamlNode(kvp.Value, schemaTags);
-            res[key ?? ""] = value;
+            object? key = ConvertFromYamlNode(kvp.Key, transformer);
+            object? value = ConvertFromYamlNode(kvp.Value, transformer);
+            res.Add(new KeyValuePair<object?, object?>(key, value));
         }
 
-        return res;
+        return transformer.MappingParser(res.ToArray(), node.Tag.ToString());
     }
 
-    private static object?[] ConvertFromYamlSequenceNode(YamlSequenceNode node,
-        Dictionary<string, Func<string, object?>> schemaTags)
+    private static object? ConvertFromYamlSequenceNode(YamlSequenceNode node,
+        YamlTransformer transformer)
     {
         List<object?> res = new();
         foreach (YamlNode childNode in node)
         {
-            res.Add(ConvertFromYamlNode(childNode, schemaTags));
+            res.Add(ConvertFromYamlNode(childNode, transformer));
         }
 
-        return res.ToArray();
+        return transformer.SequenceParser(res.ToArray(), node.Tag.ToString());
     }
 
     private static object? ConvertFromYamlScalarNode(YamlScalarNode node,
-        Dictionary<string, Func<string, object?>> schemaTags)
+        YamlTransformer transformer)
     {
         string nodeValue = node.Value ?? "";
         string nodeTag = node.Tag.ToString();
 
         try
         {
-            if (schemaTags.TryGetValue(nodeTag, out var transformer))
-            {
-                return transformer(nodeValue);
-            }
-            else
-            {
-                return nodeValue;
-            }
+            return transformer.ScalarParser(nodeValue, nodeTag);
         }
         catch (ArgumentException e)
         {

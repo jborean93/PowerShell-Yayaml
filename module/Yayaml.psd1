@@ -73,7 +73,7 @@
     CmdletsToExport = @(
         'ConvertFrom-Yaml'
         'ConvertTo-Yaml'
-        'New-YamlTransformer'
+        'New-YamlSchema'
     )
 
     # Variables to export from this module
