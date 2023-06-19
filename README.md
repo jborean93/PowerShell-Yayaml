@@ -1,9 +1,9 @@
 # PowerShell-Yayaml
 
-[![Test workflow](https://github.com/jborean93/PowerShell-yayaml/workflows/Test%20yayaml/badge.svg)](https://github.com/jborean93/PowerShell-yayaml/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jborean93/PowerShell-yayaml/branch/main/graph/badge.svg?token=b51IOhpLfQ)](https://codecov.io/gh/jborean93/PowerShell-yayaml)
-[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PowerShell-yayaml.svg)](https://www.powershellgallery.com/packages/PowerShell-yayaml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jborean93/PowerShell-yayaml/blob/main/LICENSE)
+[![Test workflow](https://github.com/jborean93/PowerShell-Yayaml/workflows/Test%20Yayaml/badge.svg)](https://github.com/jborean93/PowerShell-Yayaml/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jborean93/PowerShell-Yayaml/branch/main/graph/badge.svg?token=b51IOhpLfQ)](https://codecov.io/gh/jborean93/PowerShell-Yayaml)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PowerShell-Yayaml.svg)](https://www.powershellgallery.com/packages/Yayaml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jborean93/PowerShell-Yayaml/blob/main/LICENSE)
 
 Yet Another PowerShell YAML parser and writer.
 While there are a few other YAML modules out on the gallery this is designed to take advantage of Assembly Load Contexts (ALC) to avoid being impacted by other modules already loading YamlDotNet like platyPS.

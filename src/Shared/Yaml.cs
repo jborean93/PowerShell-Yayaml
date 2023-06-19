@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Management.Automation;
+using System.Numerics;
 using System.Text;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
@@ -123,9 +124,31 @@ namespace Yayaml.Shared;
 //     }
 // }
 
+public class YamlParseException : FormatException
+{
+    public Mark Start { get; }
+    public Mark End { get; }
+
+    public YamlParseException(string message, Mark start, Mark end)
+        : base(message)
+    {
+        Start = start;
+        End = end;
+    }
+
+    public YamlParseException(string message, Mark start, Mark end,
+        Exception innerException)
+        : base(message, innerException)
+    {
+        Start = start;
+        End = end;
+    }
+}
+
 public static class YAMLLib
 {
-    public static List<object?> ConvertFromYaml(string yaml)
+    public static List<object?> ConvertFromYaml(string yaml,
+        Dictionary<string, Func<string, object?>> schemaTags)
     {
         DeserializerBuilder builder = new DeserializerBuilder();
         IDeserializer deserializer = builder.Build();
@@ -134,70 +157,22 @@ public static class YAMLLib
         Parser parser = new(reader);
         MergingParser mergingParser = new(parser);
         YamlStream yamlStream = new();
-        yamlStream.Load(mergingParser);
+        try
+        {
+            yamlStream.Load(mergingParser);
+        }
+        catch (SemanticErrorException e)
+        {
+            throw new YamlParseException(e.Message, e.Start, e.End, e);
+        }
 
         List<object?> results = new();
         foreach (YamlDocument entry in yamlStream)
         {
-            results.Add(ConvertFromYamlNode(entry.RootNode));
+            results.Add(ConvertFromYamlNode(entry.RootNode, schemaTags));
         }
 
         return results;
-    }
-
-    private static object? ConvertFromYamlNode(YamlNode node) => node switch
-    {
-        null => null,
-        YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping),
-        YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence),
-        YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar),
-        _ => throw new NotImplementedException(""),
-    };
-
-    private static OrderedDictionary ConvertFromYamlMappingNode(YamlMappingNode node)
-    {
-        OrderedDictionary res = new();
-        foreach (KeyValuePair<YamlNode, YamlNode> kvp in node)
-        {
-            object? key = ConvertFromYamlNode(kvp.Key);
-            object? value = ConvertFromYamlNode(kvp.Value);
-            res[key ?? ""] = value;
-        }
-
-        return res;
-    }
-
-    private static object?[] ConvertFromYamlSequenceNode(YamlSequenceNode node)
-    {
-        List<object?> res = new();
-        foreach (YamlNode childNode in node)
-        {
-            res.Add(ConvertFromYamlNode(childNode));
-        }
-
-        return res.ToArray();
-    }
-
-    private static object? ConvertFromYamlScalarNode(YamlScalarNode node)
-    {
-        string tagValue = "";
-        try
-        {
-            tagValue = node.Tag.Value;
-        }
-        catch (InvalidOperationException)
-        { }
-
-        return tagValue switch
-        {
-            "tag:yaml.org,2022:str" => node.Value,
-            _ => ConvertFromYamlScalarUntaggedValue(node.Value),
-        };
-    }
-
-    private static object? ConvertFromYamlScalarUntaggedValue(string? value)
-    {
-        return value;
     }
 
     public static string ConvertToYaml(object? inputObject, int depth, out bool wasTruncated)
@@ -209,5 +184,72 @@ public static class YAMLLib
 
         SerializerBuilder builder = new SerializerBuilder();
         return builder.Build().Serialize(inputObject);
+    }
+
+
+    private static object? ConvertFromYamlNode(YamlNode node,
+        Dictionary<string, Func<string, object?>> schemaTags) => node switch
+    {
+        null => null,
+        YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping, schemaTags),
+        YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence, schemaTags),
+        YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar, schemaTags),
+        _ => throw new NotImplementedException(""),
+    };
+
+    private static OrderedDictionary ConvertFromYamlMappingNode(YamlMappingNode node,
+        Dictionary<string, Func<string, object?>> schemaTags)
+    {
+        OrderedDictionary res = new();
+        foreach (KeyValuePair<YamlNode, YamlNode> kvp in node)
+        {
+            object? key = ConvertFromYamlNode(kvp.Key, schemaTags);
+            object? value = ConvertFromYamlNode(kvp.Value, schemaTags);
+            res[key ?? ""] = value;
+        }
+
+        return res;
+    }
+
+    private static object?[] ConvertFromYamlSequenceNode(YamlSequenceNode node,
+        Dictionary<string, Func<string, object?>> schemaTags)
+    {
+        List<object?> res = new();
+        foreach (YamlNode childNode in node)
+        {
+            res.Add(ConvertFromYamlNode(childNode, schemaTags));
+        }
+
+        return res.ToArray();
+    }
+
+    private static object? ConvertFromYamlScalarNode(YamlScalarNode node,
+        Dictionary<string, Func<string, object?>> schemaTags)
+    {
+        string nodeValue = node.Value ?? "";
+        string nodeTag = node.Tag.ToString();
+
+        try
+        {
+            if (schemaTags.TryGetValue(nodeTag, out var transformer))
+            {
+                return transformer(nodeValue);
+            }
+            else
+            {
+                return nodeValue;
+            }
+        }
+        catch (ArgumentException e)
+        {
+            throw new YamlParseException(
+                $"Failed to unpack yaml node '{nodeValue}' with tag '{nodeTag}': {e.Message}",
+                node.Start, node.End, e);
+        }
+    }
+
+    private static object? ConvertFromYamlScalarUntaggedValue(string value)
+    {
+        return value;
     }
 }

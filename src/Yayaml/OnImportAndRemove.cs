@@ -61,7 +61,7 @@ public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemb
 
     private static bool IsSatisfyingAssembly(AssemblyName requiredAssemblyName, string assemblyPath)
     {
-        if (requiredAssemblyName.Name == "Yayaml.Shared" || !File.Exists(assemblyPath))
+        if (requiredAssemblyName.Name != "Yayaml.Shared" || !File.Exists(assemblyPath))
         {
             return false;
         }
