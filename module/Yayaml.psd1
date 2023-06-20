@@ -11,6 +11,7 @@
 @{
 
     # Script module or binary module file associated with this manifest.
+    # RootModule = 'Yayaml.psm1'
     RootModule = 'bin/net6.0/Yayaml.dll'
 
     # Version number of this module.

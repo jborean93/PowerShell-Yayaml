@@ -231,7 +231,7 @@ public static class YAMLLib
 
         try
         {
-            return transformer.ScalarParser(nodeValue, nodeTag);
+            return transformer.ScalarParser(nodeValue, nodeTag, (ScalarStyle)node.Style);
         }
         catch (ArgumentException e)
         {

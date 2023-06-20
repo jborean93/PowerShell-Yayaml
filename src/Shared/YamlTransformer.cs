@@ -4,7 +4,7 @@ namespace Yayaml.Shared;
 
 public delegate object? MapParser(KeyValuePair<object?, object?>[] values, string tag);
 
-public delegate object? ScalarParser(string value, string tag);
+public delegate object? ScalarParser(string value, string tag, ScalarStyle style);
 
 public delegate object? SequenceParser(object?[] values, string tag);
 

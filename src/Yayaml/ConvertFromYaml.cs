@@ -8,22 +8,6 @@ using Yayaml.Shared;
 
 namespace Yayaml;
 
-/*
-$transformer = New-YamlTransformer -Schema Yaml12Core -Scalar {} -Mapping {} -Sequence {}
-
-ConvertFrom-Yaml '' -Transformer {
-    param($Tag, $Value)
-
-    $Value
-}
-
-ConvertTo-Yaml '' -Schema {
-    param($Tag, $Value)
-
-    $Value.ToString()
-}
-*/
-
 [Cmdlet(VerbsData.ConvertFrom, "Yaml")]
 public sealed class ConvertFromYamlCommand : PSCmdlet
 {
@@ -57,17 +41,12 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     protected override void EndProcessing()
     {
         YamlSchema schema = Schema ?? YamlSchema.CreateDefault();
-        YamlTransformer transformer = new YamlTransformer(
-            schema.ParseMap,
-            schema.ParseScalar,
-            schema.ParseSequence
-        );
 
         string yaml = _inputValues.ToString();
         List<object?> obj;
         try
         {
-            obj = YAMLLib.ConvertFromYaml(yaml, transformer);
+            obj = YAMLLib.ConvertFromYaml(yaml, schema.CreateTransformer());
         }
         catch (YamlParseException e)
         {
@@ -81,15 +60,15 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
             // in PowerShell with positional details. Unfortunately this is not
             // publicly settable so we have to use reflection.
             string[] lines = yaml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-            ScriptPosition start = new("", e.Start.Line, e.Start.Column, lines[e.Start.Line - 1]);
-            ScriptPosition end = new("", e.End.Line, e.End.Column, lines[e.End.Line - 1]);
-            InvocationInfo info = InvocationInfo.Create(
-                MyInvocation.MyCommand,
-                new ScriptExtent(start, end));
-            err.GetType().GetField(
-                "_invocationInfo",
-                BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.SetValue(err, info);
+            // ScriptPosition start = new("", e.Start.Line, e.Start.Column, lines[e.Start.Line - 1]);
+            // ScriptPosition end = new("", e.End.Line, e.End.Column, lines[e.End.Line - 1]);
+            // InvocationInfo info = InvocationInfo.Create(
+            //     MyInvocation.MyCommand,
+            //     new ScriptExtent(start, end));
+            // err.GetType().GetField(
+            //     "_invocationInfo",
+            //     BindingFlags.NonPublic | BindingFlags.Instance)
+            //     ?.SetValue(err, info);
 
             WriteError(err);
             return;
