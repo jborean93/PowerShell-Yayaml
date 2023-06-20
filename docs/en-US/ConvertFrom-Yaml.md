@@ -160,5 +160,6 @@ The YAML string values to process.
 The processed YAML object. The output type is dependent on the input string that was parsed. Lists are output as `object[]` and dictionary values are output as `OrderedDictionary`.
 
 ## NOTES
+See [about_YamlParsing](./about_YamlParsing.md) for more information around how a YAML string is turnd into an object.
 
 ## RELATED LINKS

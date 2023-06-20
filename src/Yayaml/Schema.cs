@@ -31,8 +31,7 @@ public class YamlSchema
         OrderedDictionary res = new();
         foreach (KeyValuePair<object?, object?> entry in values)
         {
-            // FIXME: Allow null keys
-            res[entry.Key ?? ""] = entry.Value;
+            res[entry.Key ?? NullKey.Value] = entry.Value;
         }
 
         return res;
@@ -133,7 +132,7 @@ $)
 |
 (?<Infinity>^[-+]?\.(int|InF|INF)$)
 |
-(?<NaN>^\.(nan|NaN\NAN)$)
+(?<NaN>^\.(nan|NaN|NAN)$)
 ", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
 
     private static Regex TIMESTAMP_PATTERN = new Regex(@"
@@ -179,7 +178,7 @@ $)
     {
         try
         {
-            return Convert.FromBase64String(value.Replace(" ", ""));
+            return Convert.FromBase64String(value.Replace(" ", "").Replace("\r", "").Replace("\n", ""));
         }
         catch (FormatException e)
         {
@@ -212,7 +211,7 @@ $)
             return result;
         }
 
-        throw new ArgumentException("Does not match expected bool values true, True, TRUE, false, False, FALSE");
+        throw new ArgumentException("Does not match expected bool values");
     }
 
     private static bool TryParseInt(string value, out object? result)
@@ -226,29 +225,104 @@ $)
         }
 
         BigInteger integer;
-        if (intMatch.Groups["Octal"].Success)
+        if (intMatch.Groups["Binary"].Success)
         {
-            string rawValue = intMatch.Groups["Octal"].Value.Substring(2);
-            integer = rawValue.Aggregate(new BigInteger(), (b, c) => b * 8 + c - '0');
-        }
-        else
-        {
-            NumberStyles styles = NumberStyles.None;
-            string rawValue;
-            if (intMatch.Groups["Decimal"].Success)
+            string sign = "";
+            string rawValue = intMatch.Groups["Binary"].Value.Replace("_", "");
+            if (rawValue.StartsWith("+") || rawValue.StartsWith("-"))
             {
-                styles |= NumberStyles.AllowLeadingSign;
-                rawValue = intMatch.Groups["Decimal"].Value;
+                sign = rawValue.Substring(0, 1);
+                rawValue = rawValue.Substring(3);
             }
             else
             {
-                styles |= NumberStyles.HexNumber;
-                // Ensure it starts with 0 so it isn't interpreted as a negative
-                // number.
-                rawValue = "0" + intMatch.Groups["Hex"].Value;
+                rawValue = rawValue.Substring(2);
             }
 
-            integer = BigInteger.Parse(rawValue, styles);
+            integer = rawValue.Aggregate(new BigInteger(), (b, c) => b * 2 + c - '0');
+            if (sign == "-")
+            {
+                integer = -integer;
+            }
+        }
+        else if (intMatch.Groups["Octal"].Success)
+        {
+            string sign = "";
+            string rawValue = intMatch.Groups["Octal"].Value.Replace("_", "");
+            if (rawValue.StartsWith("+") || rawValue.StartsWith("-"))
+            {
+                sign = rawValue.Substring(0, 1);
+                rawValue = rawValue.Substring(2);
+            }
+            else
+            {
+                rawValue = rawValue.Substring(1);
+            }
+
+            integer = rawValue.Aggregate(new BigInteger(), (b, c) => b * 8 + c - '0');
+            if (sign == "-")
+            {
+                integer = -integer;
+            }
+        }
+        else if (intMatch.Groups["Decimal"].Success)
+        {
+            integer = BigInteger.Parse(
+                intMatch.Groups["Decimal"].Value.Replace("_", ""),
+                NumberStyles.AllowLeadingSign);
+        }
+        else if (intMatch.Groups["Hex"].Success)
+        {
+            string rawValue = intMatch.Groups["Hex"].Value.Replace("_", "");
+
+            bool isNegative = false;
+            if (rawValue.StartsWith("+"))
+            {
+                // Add 0 so it's always a positive number
+                rawValue = "0" + rawValue.Substring(3);
+            }
+            else if (rawValue.StartsWith("-"))
+            {
+                // Mark that the final parsed value should be negative
+                rawValue = rawValue.Substring(3);
+                isNegative = true;
+            }
+            else
+            {
+                // Ensure it's left padded to the nearest multiple of 8 so
+                // it's only treated as a negative number if the MSB is set.
+                rawValue = rawValue.Substring(2);
+                int paddingLength = (rawValue.Length + 7) & (-8);
+                rawValue = rawValue.PadLeft(paddingLength, '0');
+            }
+
+            integer = BigInteger.Parse(rawValue, NumberStyles.HexNumber);
+            if (isNegative && integer.Sign == 1)
+            {
+                integer *= -1;
+            }
+        }
+        else
+        {
+            string rawValue = intMatch.Groups["Sexagesimal"].Value.Replace("_", "");
+            bool isNegative = rawValue.StartsWith("-");
+            if (isNegative || rawValue.StartsWith("+"))
+            {
+                rawValue = rawValue.Substring(1);
+            }
+
+            string[] parts = rawValue.Split(':');
+            integer = BigInteger.Zero;
+            foreach (string p in parts)
+            {
+                integer *= 60;
+                integer += BigInteger.Parse(p, NumberStyles.None);
+            }
+
+            if (isNegative)
+            {
+                integer *= -1;
+            }
         }
 
         if (integer >= Int32.MinValue && integer <= Int32.MaxValue)

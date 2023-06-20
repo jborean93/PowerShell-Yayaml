@@ -16,6 +16,7 @@ test: 1
             $actual.test | Should -Be 1
             $actual['test'] | Should -Be 1
             $actual.1 | Should -Be abc
+            $actual[[object]1] | Should -Be abc
             $actual."2" | Should -Be def
             $actual['2'] | Should -Be def
         }
@@ -81,15 +82,14 @@ doc: 2
             $actual[$actual.Keys] | Should -Be value
         }
 
-        # FIXME: Implement this
-        # It "Parses with null map key" {
-        #     $actual = ConvertFrom-Yaml 'null: value'
+        It "Parses with null map key" {
+            $actual = ConvertFrom-Yaml 'null: value'
 
-        #     $actual.Keys.Count | Should -Be 1
-        #     $actual.Keys[0] | Should -BeNullOrEmpty
-        #     $actual.$null | Should -Be value
-        #     $actual[$null] | Should -Be value
-        # }
+            $actual.Keys.Count | Should -Be 1
+            $actual.Keys[0] | Should -Be ([Yayaml.NullKey]::Value)
+            $actual.([Yayaml.NullKey]::Value) | Should -Be value
+            $actual[[Yayaml.NullKey]::Value] | Should -Be value
+        }
     }
 
     Context "Blank Schema" {
@@ -106,11 +106,147 @@ doc: 2
     }
 
     Context "YAML 1.1 Schema" {
+        It "Parses binary <Value>" -TestCases @(
+            @{Value = '!!binary dGVzdA=='; Expected = '74657374'}
+            @{Value = '!!binary dG VzdA=='; Expected = '74657374'}
+            @{Value = "!!binary dG`rVz`r`ndA`n=="; Expected = '74657374'}
+        ) {
+            param ($Value, $Expected)
 
+            $actual = ConvertFrom-Yaml -InputObject $Value -Schema Yaml11
+            , $actual | Should -BeOfType ([byte[]])
+            [System.Convert]::ToHexString($actual) | Should -Be $Expected
+        }
+        It "Parses bool <Value>" -TestCases @(
+            @{Value = 'n'; Expected = $false}
+            @{Value = 'N'; Expected = $false}
+            @{Value = 'no'; Expected = $false}
+            @{Value = 'No'; Expected = $false}
+            @{Value = 'NO'; Expected = $false}
+            @{Value = 'false'; Expected = $false}
+            @{Value = 'False'; Expected = $false}
+            @{Value = 'FALSE'; Expected = $false}
+            @{Value = 'off'; Expected = $false}
+            @{Value = 'Off'; Expected = $false}
+            @{Value = 'OFF'; Expected = $false}
+            @{Value = '!!bool "false"'; Expected = $false}
+            @{Value = 'y'; Expected = $true}
+            @{Value = 'Y'; Expected = $true}
+            @{Value = 'yes'; Expected = $true}
+            @{Value = 'Yes'; Expected = $true}
+            @{Value = 'YES'; Expected = $true}
+            @{Value = 'true'; Expected = $true}
+            @{Value = 'True'; Expected = $true}
+            @{Value = 'TRUE'; Expected = $true}
+            @{Value = 'on'; Expected = $true}
+            @{Value = 'On'; Expected = $true}
+            @{Value = 'ON'; Expected = $true}
+            @{Value = '!!bool "True"'; Expected = $true }
+        ) {
+            param ($Value, $Expected)
+
+            $actual = ConvertFrom-Yaml -InputObject $Value -Schema Yaml11
+            $actual | Should -Be $Expected
+            $actual | Should -BeOfType ([bool])
+        }
+
+        It "Fails to parse tagged bool" {
+            $res = ConvertFrom-Yaml -InputObject '!!bool TruE' -Schema Yaml11 -ErrorAction SilentlyContinue -ErrorVariable err
+            $res | Should -BeNullOrEmpty
+            $err.Count | Should -Be 1
+            [string]$err[0] | Should -Be "Failed to unpack yaml node 'TruE' with tag 'tag:yaml.org,2002:bool': Does not match expected bool values"
+        }
+
+        It "Parses integer <Value>" -TestCases @(
+            @{Value = '0b0'; Expected = 0}
+            @{Value = '0b1'; Expected = 1}
+            @{Value = '+0b1'; Expected = 1}
+            @{Value = '-0b1'; Expected = -1}
+            @{Value = '0b1010_0111_0100_1010_1110'; Expected = 685230}
+            @{Value = '+0b1010_0111_0100_1010_1110'; Expected = 685230}
+            @{Value = '-0b1010_0111_0100_1010_1110'; Expected = -685230}
+
+            @{Value = '00'; Expected = 0}
+            @{Value = '01'; Expected = 1}
+            @{Value = '0_1'; Expected = 1}
+            @{Value = '-01'; Expected = -1}
+            @{Value = '017777777777'; Expected = 2147483647}
+            @{Value = '+017777_777777'; Expected = 2147483647}
+            @{Value = '-017777777777'; Expected = -2147483647}
+            @{Value = '020000_000000'; Expected = 2147483648}
+            @{Value = '+020000000000'; Expected = 2147483648}
+            @{Value = '-020000000000'; Expected = -2147483648}
+            @{Value = '077777777777_7777777777'; Expected = 9223372036854775807}
+            @{Value = '+0777777_777777777777777'; Expected = 9223372036854775807}
+            @{Value = '-0777777777777777777777'; Expected = -9223372036854775807}
+            @{Value = '01000000000000000000000'; Expected = [System.Numerics.BigInteger]::Parse("9223372036854775808")}
+            @{Value = '+01000000000000000000000'; Expected = [System.Numerics.BigInteger]::Parse("9223372036854775808")}
+            @{Value = '01_000_000_000_000_000_000_000'; Expected = [System.Numerics.BigInteger]::Parse("9223372036854775808")}
+
+            @{Value = '0'; Expected = 0}
+            @{Value = '!!int "0"'; Expected = 0}
+            @{Value = '1'; Expected = 1}
+            @{Value = '+1'; Expected = 1}
+            @{Value = '-1'; Expected = -1}
+            @{Value = '-2147483648'; Expected = -2147483648}
+            @{Value = '-2147483649'; Expected = -2147483649}
+            @{Value = '-9223372036854775808'; Expected = -9223372036854775808}
+            @{Value = '-9223372036854775809'; Expected = [System.Numerics.BigInteger]::Parse("-9223372036854775809")}
+            @{Value = '1'; Expected = 1}
+            @{Value = '2147483647'; Expected = 2147483647}
+            @{Value = '2147483648'; Expected = 2147483648}
+            @{Value = '2_147_483_648'; Expected = 2147483648}
+            @{Value = '9223372036854775807'; Expected = 9223372036854775807}
+            @{Value = '9223372036854775808'; Expected = [System.Numerics.BigInteger]::Parse("9223372036854775808")}
+
+            @{Value = '0x0'; Expected = 0}
+            @{Value = '0x1'; Expected = 1}
+            @{Value = '0xF'; Expected = 15}
+            @{Value = '+0xF'; Expected = 15}
+            @{Value = '0x80000000'; Expected = -2147483648}
+            @{Value = '0xFFFFFFFF7FFFFFFF'; Expected = -2147483649}
+            @{Value = '0xFFFFFFFF_7FFFFFFF'; Expected = -2147483649}
+            @{Value = '0x8000000000000000'; Expected = -9223372036854775808}
+            @{Value = '0x7FFFFFFF'; Expected = 2147483647}
+            @{Value = '0xF00000000'; Expected = 64424509440}
+            @{Value = '0x7FFFFFFFFFFFFFFF'; Expected = 9223372036854775807}
+            @{Value = '0x7_FFFFFFFFFFFFFFF'; Expected = 9223372036854775807}
+
+        ) {
+            param ($Value, $Expected)
+
+            $actual = ConvertFrom-Yaml -InputObject $Value -Schema Yaml11
+            $actual | Should -Be $Expected
+            $actual | Should -BeOfType $Expected.GetType()
+        }
+
+        It "Fails to parse tagged integer" {
+            $res = ConvertFrom-Yaml -InputObject '!!int a' -Schema Yaml11 -ErrorAction SilentlyContinue -ErrorVariable err
+            $res | Should -BeNullOrEmpty
+            $err.Count | Should -Be 1
+            [string]$err[0] | Should -BeLike "Failed to unpack yaml node 'a' with tag 'tag:yaml.org,2002:int': Does not match expected int value pattern*"
+        }
+
+        It "Parses string <Value>" -TestCases @(
+            @{Value = 'abc'; Expected = 'abc'}
+            @{Value = '!!str 1'; Expected = '1'}
+            @{Value = '"1"'; Expected = '1'}
+            @{Value = '""'; Expected = ''}
+            @{Value = "''"; Expected = ''}
+            @{Value = '"yes"'; Expected = 'yes'}
+            @{Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
+            @{Value = '"\U0001F4A9"'; Expected = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
+            @{Value = '\U0001F4A9'; Expected = "\U0001F4A9"}
+        ) {
+            param ($Value, $Expected)
+            $actual = ConvertFrom-Yaml -InputObject $Value
+            $actual | Should -Be $Expected
+            $actual | Should -BeOfType ([string])
+        }
     }
 
     Context "YAML 1.2 Schema" {
-        It "Parsed bool <Value>" -TestCases @(
+        It "Parses bool <Value>" -TestCases @(
             @{Value = 'false'; Expected = $false}
             @{Value = 'False'; Expected = $false}
             @{Value = 'FALSE'; Expected = $false}
@@ -181,18 +317,18 @@ doc: 2
         }
 
         It "Parses float <Value>" -TestCases @(
-            @{Value = '0.'; Expected = [Double]'0' }
+            @{Value = '0.'; Expected = [Double]'0'}
             @{Value = '!!float 1'; Expected = [Double]'1'}
-            @{Value = '-0.0'; Expected = [Double]'-0' }
-            @{Value = '.5'; Expected = [Double]'0.5' }
-            @{Value = '+12e03'; Expected = [Double]'12000' }
-            @{Value = '-2E+05'; Expected = [Double]'-200000' }
-            @{Value = '2E+1000'; Expected = [Double]::PositiveInfinity }
-            @{Value = '-2E+1000'; Expected = [Double]::NegativeInfinity }
-            @{Value = '.inf'; Expected = [Double]::PositiveInfinity }
-            @{Value = '-.Inf'; Expected = [Double]::NegativeInfinity }
-            @{Value = '+.INF'; Expected = [Double]::PositiveInfinity }
-            @{Value = '.NAN'; Expected = [Double]::NaN }
+            @{Value = '-0.0'; Expected = [Double]'-0'}
+            @{Value = '.5'; Expected = [Double]'0.5'}
+            @{Value = '+12e03'; Expected = [Double]'12000'}
+            @{Value = '-2E+05'; Expected = [Double]'-200000'}
+            @{Value = '2E+1000'; Expected = [Double]::PositiveInfinity}
+            @{Value = '-2E+1000'; Expected = [Double]::NegativeInfinity}
+            @{Value = '.inf'; Expected = [Double]::PositiveInfinity}
+            @{Value = '-.Inf'; Expected = [Double]::NegativeInfinity}
+            @{Value = '+.INF'; Expected = [Double]::PositiveInfinity}
+            @{Value = '.NAN'; Expected = [Double]::NaN}
         ) {
             param ($Value, $Expected)
 
@@ -314,14 +450,14 @@ doc: 2
         It "Parses float <Value>" -TestCases @(
             @{Value = '!!float -1'; Expected = [Double]'-1'}
             @{Value = '!!float 1'; Expected = [Double]'1'}
-            @{Value = '1.5'; Expected = [Double]'1.5' }
-            @{Value = '-2e+5'; Expected = [Double]'-200000' }
-            @{Value = '-2e-5'; Expected = [Double]'-2E-05' }
-            @{Value = '2e+1000'; Expected = [Double]::PositiveInfinity }
-            @{Value = '-2e+1000'; Expected = [Double]::NegativeInfinity }
-            @{Value = '.inf'; Expected = [Double]::PositiveInfinity }
-            @{Value = '-.inf'; Expected = [Double]::NegativeInfinity }
-            @{Value = '.nan'; Expected = [Double]::NaN }
+            @{Value = '1.5'; Expected = [Double]'1.5'}
+            @{Value = '-2e+5'; Expected = [Double]'-200000'}
+            @{Value = '-2e-5'; Expected = [Double]'-2E-05'}
+            @{Value = '2e+1000'; Expected = [Double]::PositiveInfinity}
+            @{Value = '-2e+1000'; Expected = [Double]::NegativeInfinity}
+            @{Value = '.inf'; Expected = [Double]::PositiveInfinity}
+            @{Value = '-.inf'; Expected = [Double]::NegativeInfinity}
+            @{Value = '.nan'; Expected = [Double]::NaN}
         ) {
             param ($Value, $Expected)
 
