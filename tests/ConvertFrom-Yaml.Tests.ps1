@@ -356,60 +356,60 @@ list:
         It "Parses timestamp <Value>" -TestCases @(
             @{
                 Value = '2001-12-15T02:59:43.1Z'
-                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, (New-TimeSpan))
             }
             @{
                 Value = '2001-12-15t02:59:43.1Z'
-                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, (New-TimeSpan))
             }
             @{
                 Value = '2001-12-15 02:59:43.1Z'
-                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, (New-TimeSpan))
             }
             @{
                 Value = "2001-12-15`t02:59:43.1Z"
-                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, (New-TimeSpan))
             }
             @{
                 Value = "2001-12-15`t02:59:43.1`tZ"
-                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, (New-TimeSpan))
             }
             @{
                 Value = '2001-12-14t21:59:43.10-05:00'
-                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, 0, (New-TimeSpan -Hours -5))
+                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, (New-TimeSpan -Hours -5))
             }
             @{
                 Value = '2001-12-14t21:59:43.10+05:00'
-                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, 0, (New-TimeSpan -Hours 5))
+                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, (New-TimeSpan -Hours 5))
             }
             @{
                 Value = '2001-12-14 21:59:43.10 -5'
-                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, 0, (New-TimeSpan -Hours -5))
+                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, (New-TimeSpan -Hours -5))
             }
             @{
                 Value = '2001-12-14 21:59:43.10 +5'
-                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, 0, (New-TimeSpan -Hours 5))
+                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, (New-TimeSpan -Hours 5))
             }
             @{
                 Value = "2001-12-14 21:59:43.10`t+5"
-                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, 0, (New-TimeSpan -Hours 5))
+                Expected = [DateTimeOffset]::new(2001, 12, 14, 21, 59, 43, 100, (New-TimeSpan -Hours 5))
             }
             @{
                 Value = '2001-12-15 2:59:43.10'
-                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2001, 12, 15, 2, 59, 43, 100, (New-TimeSpan))
             }
             @{
                 Value = '2002-12-14'
-                Expected = [DateTimeOffset]::new(2002, 12, 14, 0, 0, 0, 0, 0, (New-TimeSpan))
+                Expected = [DateTimeOffset]::new(2002, 12, 14, 0, 0, 0, 0, (New-TimeSpan))
             }
             @{
                 Value = '2023-06-21T08:37:20.3557246+10:00'
-                Expected = [DateTimeOffset]::new(2023, 6, 21, 8, 37, 20, 355, 724, (New-TimeSpan -Hours 10)).AddTicks(6)
+                Expected = [DateTimeOffset]::new(2023, 6, 21, 8, 37, 20, 355, (New-TimeSpan -Hours 10)).AddTicks(7246)
             }
             @{
                 # Dotnet only supports up to 100s of nanoseconds, so the remaining values are ignored
                 Value = '2023-06-21T08:37:20.35572465+10:00'
-                Expected = [DateTimeOffset]::new(2023, 6, 21, 8, 37, 20, 355, 724, (New-TimeSpan -Hours 10)).AddTicks(6)
+                Expected = [DateTimeOffset]::new(2023, 6, 21, 8, 37, 20, 355, (New-TimeSpan -Hours 10)).AddTicks(7246)
             }
         ) {
             param ($Value, $Expected)
