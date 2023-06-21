@@ -149,14 +149,10 @@ $)
             if (rawValue.StartsWith("+") || rawValue.StartsWith("-"))
             {
                 sign = rawValue.Substring(0, 1);
-                rawValue = rawValue.Substring(3);
-            }
-            else
-            {
-                rawValue = rawValue.Substring(2);
+                rawValue = rawValue.Substring(1);
             }
 
-            integer = rawValue.Aggregate(new BigInteger(), (b, c) => b * 2 + c - '0');
+            integer = SchemaHelpers.ParseIntBinary(rawValue);
             if (sign == "-")
             {
                 integer = -integer;
@@ -176,7 +172,7 @@ $)
                 rawValue = rawValue.Substring(1);
             }
 
-            integer = rawValue.Aggregate(new BigInteger(), (b, c) => b * 8 + c - '0');
+            integer = SchemaHelpers.ParseIntOctal($"0o{rawValue}");
             if (sign == "-")
             {
                 integer = -integer;
@@ -205,7 +201,7 @@ $)
             }
             else
             {
-                 if (rawValue.StartsWith("-"))
+                if (rawValue.StartsWith("-"))
                 {
                     // Mark that the final parsed value should be negative
                     rawValue = rawValue.Substring(1);
@@ -235,33 +231,14 @@ $)
                 rawValue = rawValue.Substring(1);
             }
 
-            string[] parts = rawValue.Split(':');
-            integer = BigInteger.Zero;
-            foreach (string p in parts)
-            {
-                integer *= 60;
-                integer += BigInteger.Parse(p, NumberStyles.None);
-            }
-
+            integer = SchemaHelpers.ParseIntSexagesimal(rawValue);
             if (isNegative)
             {
                 integer *= -1;
             }
         }
 
-        if (integer >= Int32.MinValue && integer <= Int32.MaxValue)
-        {
-            result = (int)integer;
-        }
-        else if (integer >= Int64.MinValue && integer <= Int64.MaxValue)
-        {
-            result = (Int64)integer;
-        }
-        else
-        {
-            result = integer;
-        }
-
+        result = SchemaHelpers.GetBestInt(integer);
         return true;
     }
 
@@ -314,15 +291,7 @@ $)
             }
 
             string[] integerSplit = rawValue.Split('.', 2);
-
-            string[] parts = integerSplit[0].Split(':');
-            BigInteger integer = BigInteger.Zero;
-            foreach (string p in parts)
-            {
-                integer *= 60;
-                integer += BigInteger.Parse(p, NumberStyles.None);
-            }
-
+            BigInteger integer = SchemaHelpers.ParseIntSexagesimal(integerSplit[0]);
             if (isNegative)
             {
                 integer *= -1;

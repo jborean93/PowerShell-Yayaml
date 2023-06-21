@@ -1,5 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Globalization;
+using System.Linq;
+using System.Numerics;
 
 namespace Yayaml;
 
@@ -27,6 +31,13 @@ public class YamlSchema
 {
     protected Dictionary<string, TagTransformer> Tags { get; set; } = new();
 
+    /// <summary>
+    /// Called when parsing a scalar value.
+    /// </summary>
+    /// <param name="value">The raw YAML node string to parse.</param>
+    /// <param name="tag">The associated YAML tag or '?' for undefined.</param>
+    /// <param name="style">The raw style of the YAML node string.</param>
+    /// <returns>The parsed scalar value</returns>
     public virtual object? ParseScalar(string value, string tag, ScalarStyle style)
     {
         if (Tags.TryGetValue(tag, out var transformer))
@@ -39,6 +50,12 @@ public class YamlSchema
         }
     }
 
+    /// <summary>
+    /// Called when parsing a map value (dictionary).
+    /// </summary>
+    /// <param name="values">Contains a list of all the key and values.</param>
+    /// <param name="tag">The associated YAML tag.</param>
+    /// <returns>The parsed map value.</returns>
     public virtual object? ParseMap(KeyValuePair<object?, object?>[] values, string tag)
     {
         OrderedDictionary res = new();
@@ -50,6 +67,12 @@ public class YamlSchema
         return res;
     }
 
+    /// <summary>
+    /// Called when parsing a sequence value (list).
+    /// </summary>
+    /// <param name="values">Contains a list of all the values.</param>
+    /// <param name="tag">The associated YAML tag.</param>
+    /// <returns>The parsed sequence value.</returns>
     public virtual object? ParseSequence(object?[] values, string tag)
         => values;
 
@@ -99,4 +122,46 @@ public sealed class CustomSchema : YamlSchema
 
     public override object? ParseSequence(object?[] values, string tag)
         => (_sequence ?? _baseSchema.ParseSequence)(values, tag);
+}
+
+internal static class SchemaHelpers
+{
+    public static BigInteger ParseIntBinary(string binary)
+        => binary.Substring(2)
+            .Aggregate(new BigInteger(), (b, c) => b * 2 + c - '0');
+
+    public static BigInteger ParseIntOctal(string octal)
+        => octal.Substring(2)
+            .Aggregate(new BigInteger(), (b, c) => b * 8 + c - '0');
+
+    public static BigInteger ParseIntSexagesimal(string sexagesimal)
+    {
+        string[] parts = sexagesimal.Split(':');
+        BigInteger integer = BigInteger.Zero;
+        foreach (string p in parts)
+        {
+            integer *= 60;
+            integer += BigInteger.Parse(p, NumberStyles.None);
+        }
+
+        return integer;
+    }
+
+    public static object GetBestInt(BigInteger value)
+    {
+        // Will attempt to get an Int32 or Int64 if the BigInteger fits,
+        // otherwise it just returns the BigInteger itself.
+        if (value >= Int32.MinValue && value <= Int32.MaxValue)
+        {
+            return (int)value;
+        }
+        else if (value >= Int64.MinValue && value <= Int64.MaxValue)
+        {
+            return (Int64)value;
+        }
+        else
+        {
+            return value;
+        }
+    }
 }

@@ -89,8 +89,7 @@ $)
         BigInteger integer;
         if (intMatch.Groups["Octal"].Success)
         {
-            string rawValue = intMatch.Groups["Octal"].Value.Substring(2);
-            integer = rawValue.Aggregate(new BigInteger(), (b, c) => b * 8 + c - '0');
+            integer = SchemaHelpers.ParseIntOctal(intMatch.Groups["Octal"].Value);
         }
         else if (intMatch.Groups["Decimal"].Success)
         {
@@ -98,27 +97,15 @@ $)
         }
         else
         {
-            // Ensure it starts with 0 so it isn't interpreted as a negative
-            // number.
+            // Ensure it is padded to an 8 byte boundary so it's only negative
+            // if the MSB is set.
             string rawValue = intMatch.Groups["Hex"].Value.Substring(2);
             int paddingLength = (rawValue.Length + 7) & (-8);
             rawValue = rawValue.PadLeft(paddingLength, '0');
             integer = BigInteger.Parse(rawValue, NumberStyles.HexNumber);
         }
 
-        if (integer >= Int32.MinValue && integer <= Int32.MaxValue)
-        {
-            result = (int)integer;
-        }
-        else if (integer >= Int64.MinValue && integer <= Int64.MaxValue)
-        {
-            result = (Int64)integer;
-        }
-        else
-        {
-            result = integer;
-        }
-
+        result = SchemaHelpers.GetBestInt(integer);
         return true;
     }
 

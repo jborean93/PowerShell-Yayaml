@@ -81,19 +81,7 @@ public sealed class Yaml12JSONSchema : YamlSchema
         }
 
         BigInteger integer = BigInteger.Parse(value);
-        if (integer >= Int32.MinValue && integer <= Int32.MaxValue)
-        {
-            result = (int)integer;
-        }
-        else if (integer >= Int64.MinValue && integer <= Int64.MaxValue)
-        {
-            result = (Int64)integer;
-        }
-        else
-        {
-            result = integer;
-        }
-
+        result = SchemaHelpers.GetBestInt(integer);
         return true;
     }
 
