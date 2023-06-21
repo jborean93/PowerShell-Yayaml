@@ -84,9 +84,9 @@ doc: 2
             $actual = ConvertFrom-Yaml '[1, 2]: value'
 
             $actual.Keys.Count | Should -Be 1
-            $actual.Keys[0].Count | Should -Be 2
-            $actual.Keys[0][0] | Should -Be 1
-            $actual.Keys[0][1] | Should -Be 2
+            @($actual.Keys[0]).Count | Should -Be 2
+            @($actual.Keys[0])[0] | Should -Be 1
+            @($actual.Keys[0])[1] | Should -Be 2
             $actual[$actual.Keys] | Should -Be value
         }
 
