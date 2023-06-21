@@ -1,0 +1,178 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Management.Automation;
+using System.Management.Automation.Language;
+using System.Reflection;
+using System.Text;
+using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
+using YamlDotNet.Serialization;
+
+namespace Yayaml.Module;
+
+[Cmdlet(VerbsData.ConvertFrom, "Yaml")]
+public sealed class ConvertFromYamlCommand : PSCmdlet
+{
+    private StringBuilder _inputValues = new();
+
+    [Parameter(
+        Mandatory = true,
+        Position = 0,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true
+    )]
+    [AllowEmptyString]
+    public string[] InputObject { get; set; } = Array.Empty<string>();
+
+    [Parameter]
+    public SwitchParameter NoEnumerate { get; set; }
+
+    [Parameter]
+    [YamlSchemaCompletions]
+    [SchemaParameterTransformer]
+    public YamlSchema? Schema { get; set; }
+
+    protected override void ProcessRecord()
+    {
+        foreach (string toml in InputObject)
+        {
+            _inputValues.AppendLine(toml);
+        }
+    }
+
+    protected override void EndProcessing()
+    {
+        YamlSchema schema = Schema ?? YamlSchema.CreateDefault();
+
+        string yaml = _inputValues.ToString();
+        List<object?> obj;
+        try
+        {
+            obj = ConvertFromYaml(yaml, schema);
+        }
+        catch (YamlParseException e)
+        {
+            ErrorRecord err = new(
+                e,
+                "YamlParseError",
+                ErrorCategory.ParserError,
+                yaml);
+
+            // By setting the InvocationInfo we get a nice error description
+            // in PowerShell with positional details. Unfortunately this is not
+            // publicly settable so we have to use reflection.
+            string[] lines = yaml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            ScriptPosition start = new("", e.StartLine, e.StartColumn, lines[e.StartLine - 1]);
+            ScriptPosition end = new("", e.EndLine, e.EndColumn, lines[e.EndLine - 1]);
+            InvocationInfo info = InvocationInfo.Create(
+                MyInvocation.MyCommand,
+                new ScriptExtent(start, end));
+            err.GetType().GetField(
+                "_invocationInfo",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.SetValue(err, info);
+
+            WriteError(err);
+            return;
+        }
+        catch (Exception e)
+        {
+            ErrorRecord err = new ErrorRecord(
+                e,
+                "YamlError",
+                ErrorCategory.NotSpecified,
+                null);
+            WriteError(err);
+            return;
+        }
+
+        foreach (object? entry in obj)
+        {
+            bool enumerate = !(NoEnumerate && entry is object[]);
+            WriteObject(entry, enumerate);
+        }
+    }
+
+    private static List<object?> ConvertFromYaml(string yaml,
+        YamlSchema schema)
+    {
+        DeserializerBuilder builder = new DeserializerBuilder();
+        IDeserializer deserializer = builder.Build();
+
+        using StringReader reader = new(yaml);
+        YamlDotNet.Core.Parser parser = new(reader);
+        YamlStream yamlStream = new();
+        try
+        {
+            yamlStream.Load(parser);
+        }
+        catch (SemanticErrorException e)
+        {
+            throw new YamlParseException(e.Message, e.Start.Line, e.Start.Column,
+                e.End.Line, e.End.Column, e);
+        }
+
+        List<object?> results = new();
+        foreach (YamlDocument entry in yamlStream)
+        {
+            results.Add(ConvertFromYamlNode(entry.RootNode, schema));
+        }
+
+        return results;
+    }
+
+    private static object? ConvertFromYamlNode(YamlNode node,
+        YamlSchema schema) => node switch
+        {
+            null => null,
+            YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping, schema),
+            YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence, schema),
+            YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar, schema),
+            _ => throw new NotImplementedException(""),
+        };
+
+    private static object? ConvertFromYamlMappingNode(YamlMappingNode node,
+        YamlSchema schema)
+    {
+        List<KeyValuePair<object?, object?>> res = new();
+        foreach (KeyValuePair<YamlNode, YamlNode> kvp in node)
+        {
+            object? key = ConvertFromYamlNode(kvp.Key, schema);
+            object? value = ConvertFromYamlNode(kvp.Value, schema);
+            res.Add(new KeyValuePair<object?, object?>(key, value));
+        }
+
+        return schema.ParseMap(res.ToArray(), node.Tag.ToString());
+    }
+
+    private static object? ConvertFromYamlSequenceNode(YamlSequenceNode node,
+        YamlSchema schema)
+    {
+        List<object?> res = new();
+        foreach (YamlNode childNode in node)
+        {
+            res.Add(ConvertFromYamlNode(childNode, schema));
+        }
+
+        return schema.ParseSequence(res.ToArray(), node.Tag.ToString());
+    }
+
+    private static object? ConvertFromYamlScalarNode(YamlScalarNode node,
+        YamlSchema schema)
+    {
+        string nodeValue = node.Value ?? "";
+        string nodeTag = node.Tag.ToString();
+
+        try
+        {
+            return schema.ParseScalar(nodeValue, nodeTag, (ScalarStyle)node.Style);
+        }
+        catch (ArgumentException e)
+        {
+            throw new YamlParseException(
+                $"Failed to unpack yaml node '{nodeValue}' with tag '{nodeTag}': {e.Message}",
+                node.Start.Line, node.Start.Column, node.End.Line, node.End.Column, e);
+        }
+    }
+}

@@ -19,10 +19,13 @@ ConvertFrom-Yaml [-InputObject] <String[]> [-NoEnumerate] [-Schema <YamlSchema>]
 ## DESCRIPTION
 The `ConvertFrom-Yaml` cmdlet converts a YAML formatted string to an object that can be read in PowerShell.
 The shape of this object is dependent on the YAML string that is being converted.
-By default, the YAML 1.2 core schema will be used when parsing the scalar values.
+Dictionary values are outputted as an `OrderedDictionary` and list values are outputted as an `Object[]`.
+
+By default, the YAML 1.2 core schema will be used when parsing values.
 Use the `-Schema` parameter to control what schema is used or to provide a custom schema handler.
 
 To generate a YAML string from any object, use the [ConvertTo-Yaml](./ConvertTo-Yaml.md) cmdlet.
+See [about_YamlParsing](./about_YamlParsing.md) for more information on parsing YAML strings.
 
 ## EXAMPLES
 

@@ -2,6 +2,9 @@ using System;
 
 namespace Yayaml;
 
+/// <summary>
+/// Used to indicate the key represent a null value.
+/// </summary>
 public sealed class NullKey
 {
     private static readonly Lazy<NullKey> lazy =

@@ -2,9 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
-using Yayaml.Shared;
 
-namespace Yayaml;
+namespace Yayaml.Module;
 
 [Cmdlet(VerbsCommon.New, "YamlSchema")]
 [OutputType(typeof(YamlSchema))]
@@ -37,24 +36,20 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
         }
         else
         {
-            Dictionary<string, Func<string, object?>> tagParser = new();
+            Dictionary<string,TagTransformer> tagParser = new();
             if (ParseTag != null)
             {
                 foreach (DictionaryEntry entry in ParseTag)
                 {
                     string tag = entry.Key.ToString() ?? "";
 
-                    if (entry.Value is Func<string, object?> func)
+                    if (entry.Value is TagTransformer func)
                     {
                         tagParser[tag] = func;
                     }
                     else if (entry.Value is ScriptBlock sbk)
                     {
-                        using PowerShell ps = PowerShell.Create();
-                        func = ps.AddScript("[Func[[string], [object]]]($args[0])")
-                            .AddArgument(sbk)
-                            .Invoke<Func<string, object?>>()[0];
-
+                        func = LanguagePrimitives.ConvertTo<TagTransformer>(sbk);
                         tagParser[tag] = func;
                     }
                     else
