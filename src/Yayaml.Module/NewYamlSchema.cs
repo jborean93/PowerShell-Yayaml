@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Management.Automation;
 
 namespace Yayaml.Module;
@@ -9,6 +6,18 @@ namespace Yayaml.Module;
 [OutputType(typeof(YamlSchema))]
 public sealed class NewYamlSchemaCommand : PSCmdlet
 {
+    [Parameter]
+    public MapEmitter? EmitMap { get; set; }
+
+    [Parameter]
+    public ScalarEmitter? EmitScalar { get; set; }
+
+    [Parameter]
+    public SequenceEmitter? EmitSequence { get; set; }
+
+    [Parameter]
+    public IsScalarCheck? IsScalar { get; set; }
+
     [Parameter]
     public MapParser? ParseMap { get; set; }
 
@@ -19,9 +28,6 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
     public SequenceParser? ParseSequence { get; set; }
 
     [Parameter]
-    public IDictionary? ParseTag { get; set; }
-
-    [Parameter]
     [YamlSchemaCompletions]
     [SchemaParameterTransformer]
     public YamlSchema? BaseSchema { get; set; }
@@ -30,47 +36,29 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
     {
         YamlSchema? baseSchema = BaseSchema ?? YamlSchema.CreateDefault();
 
-        if (ParseMap == null && ParseScalar == null && ParseSequence == null && ParseTag == null)
+        if (
+            IsScalar == null &&
+            EmitMap == null &&
+            EmitScalar == null &&
+            EmitSequence == null &&
+            ParseMap == null &&
+            ParseScalar == null &&
+            ParseSequence == null
+        )
         {
             WriteObject(baseSchema);
         }
         else
         {
-            Dictionary<string,TagTransformer> tagParser = new();
-            if (ParseTag != null)
-            {
-                foreach (DictionaryEntry entry in ParseTag)
-                {
-                    string tag = entry.Key.ToString() ?? "";
-
-                    if (entry.Value is TagTransformer func)
-                    {
-                        tagParser[tag] = func;
-                    }
-                    else if (entry.Value is ScriptBlock sbk)
-                    {
-                        func = LanguagePrimitives.ConvertTo<TagTransformer>(sbk);
-                        tagParser[tag] = func;
-                    }
-                    else
-                    {
-                        ErrorRecord err = new(
-                            new ArgumentException($"ParseTag value for '{tag}' must be a ScriptBlock"),
-                            "InvalidParseTagValue",
-                            ErrorCategory.InvalidArgument,
-                            entry.Value
-                        );
-                        WriteError(err);
-                    }
-                }
-            }
-
             CustomSchema finalSchema = new(
                 baseSchema,
-                tagParser,
-                map: ParseMap,
-                scalar: ParseScalar,
-                sequence: ParseSequence
+                isScalar: IsScalar,
+                mapEmitter: EmitMap,
+                scalarEmitter: EmitScalar,
+                sequenceEmitter: EmitSequence,
+                mapParser: ParseMap,
+                scalarParser: ParseScalar,
+                sequenceParser: ParseSequence
             );
             WriteObject(finalSchema);
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Language;
@@ -135,15 +136,19 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     private static object? ConvertFromYamlMappingNode(YamlMappingNode node,
         YamlSchema schema)
     {
-        List<KeyValuePair<object?, object?>> res = new();
+        OrderedDictionary res = new();
         foreach (KeyValuePair<YamlNode, YamlNode> kvp in node)
         {
             object? key = ConvertFromYamlNode(kvp.Key, schema);
             object? value = ConvertFromYamlNode(kvp.Value, schema);
-            res.Add(new KeyValuePair<object?, object?>(key, value));
+            res[key ?? NullKey.Value] = value;
         }
 
-        return schema.ParseMap(res.ToArray(), node.Tag.ToString());
+        return schema.ParseMap(new MapValue()
+        {
+            Values = res,
+            Style = (CollectionStyle)node.Style,
+        });
     }
 
     private static object? ConvertFromYamlSequenceNode(YamlSequenceNode node,
@@ -155,23 +160,29 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
             res.Add(ConvertFromYamlNode(childNode, schema));
         }
 
-        return schema.ParseSequence(res.ToArray(), node.Tag.ToString());
+        return schema.ParseSequence(new SequenceValue(res.ToArray())
+        {
+            Style = (CollectionStyle)node.Style,
+        });
     }
 
     private static object? ConvertFromYamlScalarNode(YamlScalarNode node,
         YamlSchema schema)
     {
-        string nodeValue = node.Value ?? "";
-        string nodeTag = node.Tag.ToString();
+        ScalarValue value = new(node.Value ?? "")
+        {
+            Style = (ScalarStyle)node.Style,
+            Tag = node.Tag.ToString(),
+        };
 
         try
         {
-            return schema.ParseScalar(nodeValue, nodeTag, (ScalarStyle)node.Style);
+            return schema.ParseScalar(value);
         }
         catch (ArgumentException e)
         {
             throw new YamlParseException(
-                $"Failed to unpack yaml node '{nodeValue}' with tag '{nodeTag}': {e.Message}",
+                $"Failed to unpack yaml node '{value.Value}' with tag '{value.Tag}': {e.Message}",
                 node.Start.Line, node.Start.Column, node.End.Line, node.End.Column, e);
         }
     }

@@ -11,6 +11,9 @@ Locale: en-US
 Yaml parser and writer for PowerShell.
 
 ## Yayaml Cmdlets
+### [Add-YamlFormat](Add-YamlFormat.md)
+Adds formatting info for use with `ConvertTo-Yaml` to an object.
+
 ### [ConvertFrom-Yaml](ConvertFrom-Yaml.md)
 Converts a YAML-formatted string to an object usable in PowerShell.
 

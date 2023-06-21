@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
 using System.Globalization;
+using System.Linq;
+using System.Management.Automation;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -10,36 +13,104 @@ namespace Yayaml;
 public sealed class Yaml12JSONSchema : YamlSchema
 {
     private static Regex INT_PATTERN = new Regex(@"
-(^0$)
-|
-(^-?[1-9][0-9]*$)
+^
+-?(0|[1-9][0-9]*)
+$
 ", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
 
     private static Regex FLOAT_PATTERN = new Regex(@"
-(?<Number>^(
-0
-|
+^
+-?
 (
-    -?[1-9]
-    (\.[0-9]+)?
-    (e[-+][1-9][0-9]*)?
+    0
+    |
+    [1-9][0-9]*
 )
-)$)
-|
-(?<Infinity>^-?\.inf$)
-|
-(?<NaN>^\.nan$)
+(
+    \.[0-9]*
+)?
+(
+    [eE][-+]?[0-9]+
+)?
+$
 ", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
 
-    public Yaml12JSONSchema()
+    public override MapValue EmitMap(IDictionary values)
     {
-        Tags = new()
+        return new()
         {
-            { "tag:yaml.org,2002:bool", ParseBool },
-            { "tag:yaml.org,2002:int", ParseInt },
-            { "tag:yaml.org,2002:float", ParseFloat },
-            { "tag:yaml.org,2002:null", ParseNull },
+            Values = values,
+            Style = CollectionStyle.Flow
         };
+    }
+
+    public override ScalarValue EmitScalar(object? value)
+    {
+        ScalarValue? commonScalar = SchemaHelpers.GetCommonScalar(value);
+        if (commonScalar != null)
+        {
+            // If the values are a NaN or +/-Infinity they need to be tagged.
+            if ((new[] {".nan", ".inf", "-.inf"}).Contains(commonScalar.Value))
+            {
+                commonScalar.Tag = "!!float";
+            }
+            return commonScalar;
+        }
+
+        string finalValue = SchemaHelpers.GetInstanceString(value!);
+        ScalarStyle style = SchemaHelpers.GetScalarStyle(value!);
+        return new ScalarValue(finalValue)
+        {
+            Style = ScalarStyle.DoubleQuoted,
+            Tag = style == ScalarStyle.Plain ? "!!str" : null,
+        };
+    }
+
+    public override SequenceValue EmitSequence(object?[] values)
+    {
+         return new(values)
+         {
+            Style = CollectionStyle.Flow
+         };
+    }
+
+    public override object? ParseScalar(ScalarValue value) => value.Tag switch
+    {
+        "tag:yaml.org,2002:bool" => ParseBool(value.Value),
+        "tag:yaml.org,2002:int" => ParseInt(value.Value),
+        "tag:yaml.org,2002:float" => ParseFloat(value.Value),
+        "tag:yaml.org,2002:null" => ParseNull(value.Value),
+        "tag:yaml.org,2002:str" => value.Value,
+        _ => ParseUntagged(value.Value, value.Tag, value.Style),
+    };
+
+    private static object? ParseUntagged(string value, string? tag, ScalarStyle style)
+    {
+        // https://yaml.org/spec/1.2.2/#1022-tag-resolution
+        if (style != ScalarStyle.Plain || !(string.IsNullOrWhiteSpace(tag) || tag == "?"))
+        {
+            return value;
+        }
+        if (TryParseNull(value, out var nullResult))
+        {
+            return nullResult;
+        }
+        else if (TryParseBool(value, out var boolResult))
+        {
+            return boolResult;
+        }
+        else if (TryParseInt(value, out var intResult))
+        {
+            return intResult;
+        }
+        else if (TryParseFloat(value, out var floatResult, wasTagged: false))
+        {
+            return floatResult;
+        }
+        else
+        {
+            throw new ArgumentException("Does not match JSON bool, int, float, or null literals");
+        }
     }
 
     private static bool TryParseBool(string value, out bool result)
@@ -95,9 +166,26 @@ public sealed class Yaml12JSONSchema : YamlSchema
         throw new ArgumentException("Does not match expected JSON int value pattern '0|-?[1-9][0-9]*'");
     }
 
-    private static bool TryParseFloat(string value, out object? result)
+    private static bool TryParseFloat(string value, out object? result, bool wasTagged = true)
     {
         result = default;
+
+        if (wasTagged)
+        {
+            Double? canonicalMatch = value switch
+            {
+                "0" => new Double(),
+                ".inf" => Double.PositiveInfinity,
+                "-.inf" => Double.NegativeInfinity,
+                ".nan" => Double.NaN,
+                _ => null,
+            };
+            if (canonicalMatch != null)
+            {
+                result = canonicalMatch;
+                return true;
+            }
+        }
 
         Match floatMatch = FLOAT_PATTERN.Match(value);
         if (!floatMatch.Success)
@@ -105,26 +193,8 @@ public sealed class Yaml12JSONSchema : YamlSchema
             return false;
         }
 
-        if (floatMatch.Groups["NaN"].Success)
-        {
-            result = Double.NaN;
-            return true;
-        }
-        else if (floatMatch.Groups["Infinity"].Success)
-        {
-            if (floatMatch.Groups["Infinity"].Value.StartsWith("-"))
-            {
-                result = Double.NegativeInfinity;
-            }
-            else
-            {
-                result = Double.PositiveInfinity;
-            }
-            return true;
-        }
-
         result = Double.Parse(
-            floatMatch.Groups["Number"].Value,
+            value,
             NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign
         );
 
@@ -155,37 +225,5 @@ public sealed class Yaml12JSONSchema : YamlSchema
         }
 
         throw new ArgumentException("Does not match expected JSON null value null");
-    }
-
-    public override object? ParseScalar(string value, string tag, ScalarStyle style)
-    {
-        if (Tags.TryGetValue(tag, out var transformer))
-        {
-            return transformer(value);
-        }
-        else if (style != ScalarStyle.Plain || tag != "?")
-        {
-            return value;
-        }
-        else if (TryParseBool(value, out var boolResult))
-        {
-            return boolResult;
-        }
-        else if (TryParseInt(value, out var intResult))
-        {
-            return intResult;
-        }
-        else if (TryParseFloat(value, out var floatResult))
-        {
-            return floatResult;
-        }
-        else if (TryParseNull(value, out var nullResult))
-        {
-            return nullResult;
-        }
-        else
-        {
-            return value;
-        }
     }
 }

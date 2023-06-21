@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
+using System.Management.Automation;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -78,17 +78,127 @@ $)
 $)
 ", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
 
-    public Yaml11Schema()
+    public override bool IsScalar(object? value)
+        => value is byte[];
+
+    public override ScalarValue EmitScalar(object? value)
     {
-        Tags = new()
+        ScalarValue? commonScalar = SchemaHelpers.GetCommonScalar(value);
+        if (commonScalar != null)
         {
-            { "tag:yaml.org,2002:binary", ParseBinary },
-            { "tag:yaml.org,2002:bool", ParseBool },
-            { "tag:yaml.org,2002:int", ParseInt },
-            { "tag:yaml.org,2002:float", ParseFloat },
-            { "tag:yaml.org,2002:null", ParseNull },
-            { "tag:yaml.org,2002:timestamp", ParseTimestamp },
-        };
+            return commonScalar;
+        }
+
+        ScalarStyle style = SchemaHelpers.GetScalarStyle(value!);
+        bool noTag = style == ScalarStyle.Any || style == ScalarStyle.Plain;
+
+        const string dtFormat = "yyyy-MM-ddTHH:mm:ss.FFFFFFFK";
+        if (value is DateTime dt)
+        {
+            return new ScalarValue(dt.ToString(dtFormat, CultureInfo.InvariantCulture))
+            {
+                Tag = noTag ? null : "!!timestamp",
+            };
+        }
+        else if (value is DateTimeOffset dto)
+        {
+            return new ScalarValue(dto.ToString(dtFormat, CultureInfo.InvariantCulture))
+            {
+                Tag = noTag ? null : "!!timestamp",
+            };
+        }
+        else if (value is byte[] byteArray)
+        {
+            return new ScalarValue(Convert.ToBase64String(byteArray))
+            {
+                Tag = "!!binary",
+            };
+        }
+
+        string finalValue = SchemaHelpers.GetInstanceString(value!);
+        // See if the value needs to be quoted
+        ScalarValue scalarValue = new ScalarValue(finalValue);
+        object? parsedValue = ParseUntagged(scalarValue.Value, null, ScalarStyle.Plain);
+        if (parsedValue is not string)
+        {
+            scalarValue.Style = ScalarStyle.DoubleQuoted;
+        }
+
+        return scalarValue;
+    }
+
+    public override object? ParseMap(MapValue value)
+    {
+        OrderedDictionary res = new();
+        foreach (DictionaryEntry entry in value.Values)
+        {
+            // If '>>: !!map ...' is encountered then the values need to be
+            // merged into the final result.
+            if (
+                entry.Key is string stringKey &&
+                stringKey == "<<" &&
+                entry.Value is OrderedDictionary mergeTable)
+            {
+                foreach (DictionaryEntry mergeEntry in mergeTable)
+                {
+                    if (res.Contains(mergeEntry.Key))
+                    {
+                        continue;
+                    }
+                    res[mergeEntry.Key] = mergeEntry.Value;
+                }
+            }
+            else
+            {
+                res[entry.Key] = entry.Value;
+            }
+        }
+
+        return res;
+    }
+
+    public override object? ParseScalar(ScalarValue value) => value.Tag switch
+    {
+        "tag:yaml.org,2002:binary" => ParseBinary(value.Value),
+        "tag:yaml.org,2002:bool" => ParseBool(value.Value),
+        "tag:yaml.org,2002:int" => ParseInt(value.Value),
+        "tag:yaml.org,2002:float" => ParseFloat(value.Value),
+        "tag:yaml.org,2002:null" => ParseNull(value.Value),
+        "tag:yaml.org,2002:str" => value.Value,
+        "tag:yaml.org,2002:timestamp" => ParseTimestamp(value.Value),
+        _ => ParseUntagged(value.Value, value.Tag, value.Style),
+    };
+
+    private static object? ParseUntagged(string value, string? tag, ScalarStyle style)
+    {
+        if (style != ScalarStyle.Plain || !(string.IsNullOrWhiteSpace(tag) || tag == "?"))
+        {
+            return value;
+        }
+        else if (TryParseBool(value, out var boolResult))
+        {
+            return boolResult;
+        }
+        else if (TryParseInt(value, out var intResult))
+        {
+            return intResult;
+        }
+        else if (TryParseFloat(value, out var floatResult))
+        {
+            return floatResult;
+        }
+        else if (TryParseNull(value, out var nullResult))
+        {
+            return nullResult;
+        }
+        else if (TryParseTimestamp(value, out var dtResult))
+        {
+            return dtResult;
+        }
+        else
+        {
+            return value;
+        }
     }
 
     private static object? ParseBinary(string value)
@@ -322,10 +432,10 @@ $)
         throw new ArgumentException("Does not match expected float value pattern");
     }
 
-    private static bool TryParseNull(string value, out object? result, bool acceptBlank = true)
+    private static bool TryParseNull(string value, out object? result)
     {
         result = null;
-        return new[] { "null", "Null", "NULL", "~" }.Contains(value) || (acceptBlank && value == "");
+        return new[] { "null", "Null", "NULL", "~", "" }.Contains(value);
     }
 
     private static object? ParseNull(string value)
@@ -411,71 +521,5 @@ $)
         }
 
         throw new ArgumentException("Does not match expected timestamp value");
-    }
-
-    public override object? ParseScalar(string value, string tag, ScalarStyle style)
-    {
-        if (Tags.TryGetValue(tag, out var transformer))
-        {
-            return transformer(value);
-        }
-        else if (style != ScalarStyle.Plain || tag != "?")
-        {
-            return value;
-        }
-        else if (TryParseBool(value, out var boolResult))
-        {
-            return boolResult;
-        }
-        else if (TryParseInt(value, out var intResult))
-        {
-            return intResult;
-        }
-        else if (TryParseFloat(value, out var floatResult))
-        {
-            return floatResult;
-        }
-        else if (TryParseNull(value, out var nullResult, acceptBlank: false))
-        {
-            return nullResult;
-        }
-        else if (TryParseTimestamp(value, out var dtResult))
-        {
-            return dtResult;
-        }
-        else
-        {
-            return value;
-        }
-    }
-
-    public override object? ParseMap(KeyValuePair<object?, object?>[] values, string tag)
-    {
-        OrderedDictionary res = new();
-        foreach (KeyValuePair<object?, object?> entry in values)
-        {
-            // If '>>: !!map ...' is encountered then the values need to be
-            // merged into the final result.
-            if (
-                entry.Key is string stringKey &&
-                stringKey == "<<" &&
-                entry.Value is OrderedDictionary mergeTable)
-            {
-                foreach (DictionaryEntry mergeEntry in mergeTable)
-                {
-                    if (res.Contains(mergeEntry.Key))
-                    {
-                        continue;
-                    }
-                    res[mergeEntry.Key] = mergeEntry.Value;
-                }
-            }
-            else
-            {
-                res[entry.Key ?? NullKey.Value] = entry.Value;
-            }
-        }
-
-        return res;
     }
 }

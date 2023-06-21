@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Management.Automation;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -35,17 +36,63 @@ $)
 |
 (?<NaN>^\.nan|\.NaN|\.NAN$)
 ", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
-
-    public Yaml12Schema()
+    public override ScalarValue EmitScalar(object? value)
     {
-        Tags = new()
+        ScalarValue? commonScalar = SchemaHelpers.GetCommonScalar(value);
+        if (commonScalar != null)
         {
-            { "tag:yaml.org,2002:bool", ParseBool },
-            { "tag:yaml.org,2002:int", ParseInt },
-            { "tag:yaml.org,2002:float", ParseFloat },
-            { "tag:yaml.org,2002:null", ParseNull },
-            { "tag:yaml.org,2002:str", (s => s) },
-        };
+            return commonScalar;
+        }
+
+        string finalValue = SchemaHelpers.GetInstanceString(value!);
+
+        // See if the value needs to be quoted
+        ScalarValue scalarValue = new ScalarValue(finalValue);
+        object? parsedValue = ParseUntagged(scalarValue.Value, null, ScalarStyle.Plain);
+        if (parsedValue is not string)
+        {
+            scalarValue.Style = ScalarStyle.DoubleQuoted;
+        }
+
+        return scalarValue;
+    }
+
+    public override object? ParseScalar(ScalarValue value) => value.Tag switch
+    {
+        "tag:yaml.org,2002:bool" => ParseBool(value.Value),
+        "tag:yaml.org,2002:int" => ParseInt(value.Value),
+        "tag:yaml.org,2002:float" => ParseFloat(value.Value),
+        "tag:yaml.org,2002:null" => ParseNull(value.Value),
+        "tag:yaml.org,2002:str" => value.Value,
+        _ => ParseUntagged(value.Value, value.Tag, value.Style),
+    };
+
+    private static object? ParseUntagged(string value, string? tag, ScalarStyle style)
+    {
+        if (style != ScalarStyle.Plain || !(string.IsNullOrWhiteSpace(tag) || tag == "?"))
+        {
+            return value;
+        }
+        else if (TryParseNull(value, out var nullResult))
+        {
+            return nullResult;
+        }
+        else if (TryParseBool(value, out var boolResult))
+        {
+            return boolResult;
+        }
+        else if (TryParseInt(value, out var intResult))
+        {
+            return intResult;
+        }
+        else if (TryParseFloat(value, out var floatResult))
+        {
+            return floatResult;
+        }
+        else
+        {
+            return value;
+        }
     }
 
     private static bool TryParseBool(string value, out bool result)
@@ -165,10 +212,10 @@ $)
         throw new ArgumentException("Does not match expected float value pattern");
     }
 
-    private static bool TryParseNull(string value, out object? result, bool acceptBlank = true)
+    private static bool TryParseNull(string value, out object? result)
     {
         result = null;
-        return new[] { "null", "Null", "NULL", "~" }.Contains(value) || (acceptBlank && value == "");
+        return new[] { "null", "Null", "NULL", "~", "" }.Contains(value);
     }
 
     private static object? ParseNull(string value)
@@ -179,37 +226,5 @@ $)
         }
 
         throw new ArgumentException("Does not match expected null values null, Null, NULL, ~");
-    }
-
-    public override object? ParseScalar(string value, string tag, ScalarStyle style)
-    {
-        if (Tags.TryGetValue(tag, out var transformer))
-        {
-            return transformer(value);
-        }
-        else if (style != ScalarStyle.Plain || tag != "?")
-        {
-            return value;
-        }
-        else if (TryParseBool(value, out var boolResult))
-        {
-            return boolResult;
-        }
-        else if (TryParseInt(value, out var intResult))
-        {
-            return intResult;
-        }
-        else if (TryParseFloat(value, out var floatResult))
-        {
-            return floatResult;
-        }
-        else if (TryParseNull(value, out var nullResult, acceptBlank: false))
-        {
-            return nullResult;
-        }
-        else
-        {
-            return value;
-        }
     }
 }
