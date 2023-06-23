@@ -26,11 +26,16 @@ Here is an example that can process values with the tag `tag:yaml.org,2002:my_ta
 $yaml = @'
 key: !!my_tag 74657374
 '@
-$schema = New-YamlSchema -ParseTag @{
-    'tag:yaml.org,2002:my_tag' = {
-        param ([string]$Value)
-        $bytes = [System.Convert]::FromHexString($Value)
+$schema = New-YamlSchema -ParseScalar {
+    param ($Value, $Schema)
+
+    if ($Value.Tag -eq 'tag:yaml.org,2002:my_tag') {
+        $bytes = [System.Convert]::FromHexString($Value.Value)
         [System.Text.Encoding]::UTF8.GetString($bytes)
+    }
+    else {
+        # Call the base schema for the other values
+        $Schema.ParseScalar($Value)
     }
 }
 $obj = ConvertFrom-Yaml -InputObject $yaml -Schema $schema
@@ -41,45 +46,57 @@ Anytime an entry with the tag `my_tag` is encountered, the custom provided code 
 All other tag/node handling from the schema specified (default is `Yaml12`) will still apply for other values.
 The same YAML tag naming standard applies here.
 
-It is also possible to provide custom handlers for all maps, scalar, and sequence values:
+It is also possible to provide custom handlers for all maps and sequence values using the `-ParseMap` and `-ParseSequence` parameters as below:
 
 ```powershell
 $yaml = @'
 key: !!my_tag 74657374
 '@
 $schema = New-YamlSchema -ParseMap {
-    param ($Values, $Tag)
+    param ($Value, $Schema)
 
-    # $Values - an array of KeyValuePair<object?, object?>
-    # $Tag - the tag for this node
-
-    $Values
-} -ParseScalar {
-    param ($Value, $Tag, $ScalarType)
-
-    # $Value - raw string for the node
-    # $Tag - the tag for this node
-    # $ScalarType - The type of scalar
-    #   Plain - key: value
-    #   SingleQuoted - key: 'value'
-    #   DoubleQuoted - key: "value"
-    #   Literal - key: |\n  value
-    #   Folded - key: >\n  value
-
-    $Value
+    $Value.Values
 } -ParseSequence {
-    param ($Values, $Tag)
+    param ($Value, $Schema)
 
-    # $Values - array of values
-    # $Tag - the tag for this node
-
-    $Values
+    $Value.Values
 }
 
 $obj = ConvertFrom-Yaml -InputObject $yaml -Schema $schema
 ```
 
-This will overwrite the handling of any of the 3 raw types with the ScriptBlock specified.
+Each of these ScriptBlocks are called with 2 parameters:
+
++ `$Value`
++ `$Schema`
+
+The `$Value` is the YAML value being processed.
+For a scalar value it has the following properties:
+
++ `Value` - The raw YAML string value
++ `Tag` - The associated tag or `?` for untagged
++ `Style` - The YAML value style
+    + `Plain` - `key: value`
+    + `SingleQuoted` - `key: 'value'`
+    + `Literal` - `key: |\n  value`
+    + `Folded` - `key: >\n  value`
+
+For a map value is has the following properties:
+
++ `Values` - An `OrderedDictionary` containing the key/value pairs for this map
++ `Style` - The YAML value style
+    + `Block` - `key: value`
+    + `Flow` - `{key: value}`
+
+For a sequence value is has the following properties:
+
++ `Values` - An object array containing the values of the sequence
++ `Style` - The YAML value style
+    + `Block` - `- 1`
+    + `Flow` - `[1]`
+
+The `$Schema` references the base schema used by `New-YamlSchema`.
+It can be called to process values using the rules of the schema itself rather than the custom rules in the ScriptBlock.
 
 ## Integer Values
 As PowerShell is based on dotnet, it has fixed length integer types.

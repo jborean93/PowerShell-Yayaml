@@ -1,5 +1,7 @@
 . ([IO.Path]::Combine($PSScriptRoot, 'common.ps1'))
 
+$global:n = [System.Environment]::NewLine
+
 Describe "ConvertFrom-Yaml" {
     Context "General Parsing" {
         It "Parses dictionary value" {
@@ -142,10 +144,10 @@ list:
         }
 
         It "Treats non-plain values as a string <Value>" -TestCases @(
-            @{Value = "foo: |`n  true"; Expected = "true`n"}
-            @{Value = "foo: |-`n  true"; Expected = "true"}
-            @{Value = "foo: >`n  true"; Expected = "true`n"}
-            @{Value = "foo: >-`n  true"; Expected = "true"}
+            @{Value = "foo: |$n  true"; Expected = "true`n"}
+            @{Value = "foo: |-$n  true"; Expected = "true"}
+            @{Value = "foo: >$n  true"; Expected = "true`n"}
+            @{Value = "foo: >-$n  true"; Expected = "true"}
         ) {
             param ($Value, $Expected)
 
@@ -172,7 +174,7 @@ list:
         It "Parses binary <Value>" -TestCases @(
             @{Value = 'foo: !!binary dGVzdA=='; Expected = '74657374'}
             @{Value = 'foo: !!binary dG VzdA=='; Expected = '74657374'}
-            @{Value = "foo: !!binary |`n  dG`r  Vz`r`n  dA`n  =="; Expected = '74657374'}
+            @{Value = "foo: !!binary |$n  dG`r  Vz`r$n  dA$n  =="; Expected = '74657374'}
         ) {
             param ($Value, $Expected)
 
@@ -742,11 +744,12 @@ dict:
             @{Value = '1.5'; Expected = [Double]'1.5'}
             @{Value = '-2e+5'; Expected = [Double]'-200000'}
             @{Value = '-2e-5'; Expected = [Double]'-2E-05'}
+            @{Value = '-2E-5'; Expected = [Double]'-2E-05'}
             @{Value = '2e+1000'; Expected = [Double]::PositiveInfinity}
             @{Value = '-2e+1000'; Expected = [Double]::NegativeInfinity}
-            @{Value = '.inf'; Expected = [Double]::PositiveInfinity}
-            @{Value = '-.inf'; Expected = [Double]::NegativeInfinity}
-            @{Value = '.nan'; Expected = [Double]::NaN}
+            @{Value = '!!float .inf'; Expected = [Double]::PositiveInfinity}
+            @{Value = '!!float -.inf'; Expected = [Double]::NegativeInfinity}
+            @{Value = '!!float .nan'; Expected = [Double]::NaN}
         ) {
             param ($Value, $Expected)
 
@@ -762,10 +765,10 @@ dict:
         }
 
         It "Fails to parse tagged float" {
-            $res = ConvertFrom-Yaml -InputObject '!!float 1E1' -Schema Yaml12JSON -ErrorAction SilentlyContinue -ErrorVariable err
+            $res = ConvertFrom-Yaml -InputObject '!!float a' -Schema Yaml12JSON -ErrorAction SilentlyContinue -ErrorVariable err
             $res | Should -BeNullOrEmpty
             $err.Count | Should -Be 1
-            [string]$err[0] | Should -Be "Failed to unpack yaml node '1E1' with tag 'tag:yaml.org,2002:float': Does not match expected JSON float value pattern"
+            [string]$err[0] | Should -Be "Failed to unpack yaml node 'a' with tag 'tag:yaml.org,2002:float': Does not match expected JSON float value pattern"
         }
 
         It "Parses null <Value>" -TestCases @(
@@ -787,21 +790,29 @@ dict:
         }
 
         It "Parses string <Value>" -TestCases @(
-            @{Value = 'abc'; Expected = 'abc'}
+            @{Value = '"abc"'; Expected = 'abc'}
             @{Value = '!!str 1'; Expected = '1'}
             @{Value = '"1"'; Expected = '1'}
-            @{Value = '0x1'; Expected = '0x1'}
+            @{Value = '"0x1"'; Expected = '0x1'}
             @{Value = '""'; Expected = ''}
             @{Value = "''"; Expected = ''}
-            @{Value = 'yes'; Expected = 'yes'}
-            @{Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
+            @{Value = '"yes"'; Expected = 'yes'}
+            @{Value = '!!str true'; Expected = 'true'}
+            @{Value = """$([Char]::ConvertFromUtf32(0x1F4A9))"""; Expected = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
             @{Value = '"\U0001F4A9"'; Expected = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
-            @{Value = '\U0001F4A9'; Expected = "\U0001F4A9"}
+            @{Value = "'\U0001F4A9'"; Expected = "\U0001F4A9"}
         ) {
             param ($Value, $Expected)
             $actual = ConvertFrom-Yaml -InputObject $Value -Schema Yaml12JSON
             $actual | Should -Be $Expected
             $actual | Should -BeOfType ([string])
+        }
+
+        It "Fails to parse unknown plain scalar value" {
+            $res = ConvertFrom-Yaml -InputObject 'abc' -Schema Yaml12JSON -ErrorAction SilentlyContinue -ErrorVariable err
+            $res | Should -BeNullOrEmpty
+            $err.Count | Should -Be 1
+            [string]$err[0] | Should -Be "Failed to unpack yaml node 'abc' with tag '?': Does not match JSON bool, int, float, or null literals"
         }
 
         It "Parses unknown tagged value <Value>" -TestCases @(
@@ -816,22 +827,38 @@ dict:
 
     Context "Custom Schema" {
         It "Parses with custom tag handler" {
-            $schema = New-YamlSchema -ParseTag @{
-                'tag:yaml.org,2002:my_tag' = { 2 }
+            $schema = New-YamlSchema -ParseScalar {
+                param ($Value, $Schema)
+
+                if ($Value.Tag -eq 'tag:yaml.org,2002:my_tag') {
+                    2
+                }
+                else {
+                    $Schema.ParseScalar($Value)
+                }
             }
 
-            $actual = ConvertFrom-Yaml -InputObject "foo: 1`ntest: !!my_tag 2" -Schema $schema
+            $actual = ConvertFrom-Yaml -InputObject "foo: 1${n}test: !!my_tag 2" -Schema $schema
             $actual.Keys.Count | Should -Be 2
             $actual['foo'] | Should -Be 1
+            $actual['foo'] | Should -BeOfType ([int])
             $actual['test'] | Should -Be 2
+            $actual['test'] | Should -BeOfType ([int])
         }
 
         It "Parses with custom tag handler with base schema" {
-            $schema = New-YamlSchema -ParseTag @{
-                'tag:yaml.org,2002:int' = { 1 }
+            $schema = New-YamlSchema -ParseScalar {
+                param ($Value, $Schema)
+
+                if ($Value.Tag -eq 'tag:yaml.org,2002:int') {
+                    1
+                }
+                else {
+                    $Schema.ParseScalar($Value)
+                }
             } -BaseSchema Yaml12JSON
 
-            $actual = ConvertFrom-Yaml -InputObject "foo: !!int 2`ntest: True" -Schema $schema
+            $actual = ConvertFrom-Yaml -InputObject """foo"": !!int 2$n""test"": 'True'" -Schema $schema
             $actual.Keys.Count | Should -Be 2
             $actual.foo | Should -Be 1
             $actual.test | Should -Be True
@@ -840,25 +867,26 @@ dict:
 
         It "Parses with custom tag handler" {
             $schema = New-YamlSchema -ParseScalar {
-                param ($Value, $Tag)
+                param ($Value, $Schema)
 
-                "$Tag|$Value"
+                '{0}|{1}|{2}' -f $Value.Tag, $Value.Style, $Value.Value
             }
 
-            $actual = ConvertFrom-Yaml -InputObject "foo: 1`ntest: !!my_tag 2" -Schema $schema
-            $actual.Keys.Count | Should -Be 2
-            $actual['?|foo'] | Should -Be '?|1'
-            $actual['?|test'] | Should -Be 'tag:yaml.org,2002:my_tag|2'
+            $actual = ConvertFrom-Yaml -InputObject "foo: 1${n}test: !!my_tag 2${n}other: 'quoted'" -Schema $schema
+            $actual.Keys.Count | Should -Be 3
+            $actual['?|Plain|foo'] | Should -Be '?|Plain|1'
+            $actual['?|Plain|test'] | Should -Be 'tag:yaml.org,2002:my_tag|Plain|2'
+            $actual['?|Plain|other'] | Should -Be '?|SingleQuoted|quoted'
         }
 
         It "Parses with custom map" {
             $schema = New-YamlSchema -ParseMap {
-                param ($Values, $Tag)
+                param ($Value, $Schema)
 
-                $Values
+                @($Value.Values.GetEnumerator())
             }
 
-            $actual = ConvertFrom-Yaml -InputObject "foo: 1`nbar: hello" -Schema $schema
+            $actual = ConvertFrom-Yaml -InputObject "foo: 1${n}bar: hello" -Schema $schema
             $actual.Length | Should -Be 2
             $actual[0].Key | Should -Be foo
             $actual[0].Value | Should -Be 1
@@ -868,11 +896,11 @@ dict:
 
         It "Parses with custom sequence" {
             $schema = New-YamlSchema -ParseSequence {
-                param ($Values, $Tag)
+                param ($Value, $Schema)
 
                 $res = @{}
-                for ($i = 0; $i -lt $Values.Length; $i++) {
-                    $res[$i] = $Values[$i]
+                for ($i = 0; $i -lt $Value.Values.Length; $i++) {
+                    $res[$i] = $Value.Values[$i]
                 }
 
                 $res
@@ -887,7 +915,7 @@ dict:
 
         It "Parses with generated schema" {
             $schema = New-YamlSchema -BaseSchema Yaml12JSON
-            $actual = ConvertFrom-Yaml -InputObject 'True' -Schema $schema
+            $actual = ConvertFrom-Yaml -InputObject '!!str True' -Schema $schema
             $actual | Should -Be 'True'
             $actual | Should -BeOfType ([string])
         }

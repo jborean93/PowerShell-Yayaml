@@ -18,7 +18,7 @@ public class LoadContext : AssemblyLoadContext
     private string _assemblyDir;
 
     private LoadContext(string mainModulePathAssemblyPath)
-        : base ("Yayaml", false)
+        : base (name: "Yayaml", isCollectible: false)
     {
         _assemblyDir = Path.GetDirectoryName(mainModulePathAssemblyPath) ?? "";
         _thisAssembly = typeof(LoadContext).Assembly;
@@ -28,7 +28,7 @@ public class LoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        if (assemblyName.Name == _thisAssemblyName.Name)
+        if (AssemblyName.ReferenceMatchesDefinition(_thisAssemblyName, assemblyName))
         {
             return _thisAssembly;
         }

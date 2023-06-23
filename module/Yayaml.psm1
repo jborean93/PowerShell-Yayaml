@@ -1,6 +1,10 @@
 # Copyright: (c) 2023, Jordan Borean (@jborean93) <jborean93@gmail.com>
 # MIT License (see LICENSE or https://opensource.org/licenses/MIT)
 
+# This is used to load the shared assembly in the Default ALC which then sets
+# an ALC for the moulde and any dependencies of that module to be loaded in
+# that ALC.
+
 $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($PSCommandPath)
 Add-Type -Path ([System.IO.Path]::Combine($PSScriptRoot, 'bin', 'net6.0', "$moduleName.dll"))
 
