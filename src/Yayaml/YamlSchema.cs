@@ -76,6 +76,8 @@ internal static class SchemaHelpers
             value is Int64 ||
             value is UInt64 ||
             value is BigInteger ||
+            value is IntPtr ||
+            value is UIntPtr ||
             value is Enum;
 
     public static bool IsFloatValue(object value)
