@@ -15,7 +15,7 @@
     # RootModule = 'bin/net6.0/Yayaml.dll'
 
     # Version number of this module.
-    ModuleVersion = '0.1.0'
+    ModuleVersion = '0.1.1'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()

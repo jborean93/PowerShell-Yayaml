@@ -99,6 +99,19 @@ Describe "ConvertTo-Yaml" {
             $actual | Should -Be 'null: foo'
         }
 
+        It "Emits IntPtr value <Value>" -TestCases @(
+            @{Value = [IntPtr]::Zero; Expected = 0}
+            @{Value = [UIntPtr]::Zero; Expected = 0}
+            @{Value = [IntPtr]1; Expected = 1}
+            @{Value = [UIntPtr]1; Expected = 1}
+            @{Value = [IntPtr]2147483647; Expected = 2147483647}
+            @{Value = [UIntPtr]4294967295; Expected = 4294967295}
+        ) {
+            param ($Value, $Expected)
+            $actual = ConvertTo-Yaml $Value
+            $actual | Should -Be $Expected
+        }
+
         It "Uses pipeline input single" {
             $actual = 1 | ConvertTo-Yaml
             $actual | Should -Be '1'
