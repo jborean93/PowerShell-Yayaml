@@ -1,6 +1,6 @@
 # Changelog for Yayaml
 
-## v0.1.1 - TBD
+## v0.1.1 - 2023-08-03
 
 + Treat `IntPtr` values like other numeric types
 
