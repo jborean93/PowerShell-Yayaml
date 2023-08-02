@@ -2,7 +2,7 @@
 
 [![Test workflow](https://github.com/jborean93/PowerShell-Yayaml/workflows/Test%20Yayaml/badge.svg)](https://github.com/jborean93/PowerShell-Yayaml/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/jborean93/PowerShell-Yayaml/branch/main/graph/badge.svg?token=b51IOhpLfQ)](https://codecov.io/gh/jborean93/PowerShell-Yayaml)
-[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PowerShell-Yayaml.svg)](https://www.powershellgallery.com/packages/Yayaml)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/Yayaml.svg)](https://www.powershellgallery.com/packages/Yayaml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jborean93/PowerShell-Yayaml/blob/main/LICENSE)
 
 Yet Another YAML PowerShell parser and writer.
