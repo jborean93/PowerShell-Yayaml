@@ -1,6 +1,6 @@
 # Changelog for Yayaml
 
-## v0.2.1 - TBD
+## v0.2.1 - 2023-10-13
 
 + Support serializating dotnet properties that return a `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, or `ReadOnlyMemory<T>`
   + These values will be copied to a temporary array of the type `T`
