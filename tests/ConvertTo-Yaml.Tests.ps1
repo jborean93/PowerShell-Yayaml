@@ -196,6 +196,59 @@ Describe "ConvertTo-Yaml" {
             $actual = $obj | ConvertTo-Yaml
             $actual | Should -Be '{Foo: 1}'
         }
+
+        It "Emits Memory" {
+            $mem = [System.Memory[byte]]::new([byte[]]@(1, 2))
+
+            $value = @{mem = $mem}
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "mem:$n- 1$n- 2"
+        }
+
+        It "Emits ReadOnlyMemory" {
+            $mem = [System.ReadOnlyMemory[byte]]::new([byte[]]@(1, 2))
+
+            $value = @{mem = $mem}
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "mem:$n- 1$n- 2"
+        }
+
+        It "Emits Span and ReadOnlySpan properties" {
+            Add-Type -TypeDefinition @'
+using System;
+
+namespace Yayaml.Tests;
+
+public class SpanTest
+{
+    private byte[] _data = new byte[] { 1, 2 };
+
+    public string Foo;
+    public Span<byte> SpanProp
+    {
+        get => _data.AsSpan();
+    }
+
+    public ReadOnlySpan<byte> ReadOnlySpanProp
+    {
+        get => _data.AsSpan();
+    }
+
+    public SpanTest()
+    {
+        Foo = "value";
+    }
+}
+'@
+
+            $obj = [Yayaml.Tests.SpanTest]::New()
+            $actual = $obj | ConvertTo-Yaml
+            $actual | Should -Be "SpanProp:$n- 1$n- 2${n}ReadOnlySpanProp:$n- 1$n- 2${n}Foo: value"
+
+            # Ensure we don't cause a type conflict when generating the delegate method
+            $actual2 = $obj | ConvertTo-Yaml
+            $actual2 | Should -Be $actual
+        }
     }
 
     Context "Blank Schema" {
@@ -359,6 +412,11 @@ Describe "ConvertTo-Yaml" {
             # binary
             @{
                 Value = [byte[]]@(0, 1, 2, 16)
+                Expected = '!!binary AAECEA=='
+                Roundtrip = [byte[]]@(0, 1, 2, 16)
+            }
+            @{
+                Value = [System.Collections.Generic.List[byte]]@(0, 1, 2, 16)
                 Expected = '!!binary AAECEA=='
                 Roundtrip = [byte[]]@(0, 1, 2, 16)
             }

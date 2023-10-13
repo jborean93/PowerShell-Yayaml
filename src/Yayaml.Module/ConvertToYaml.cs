@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Management.Automation;
+using System.Reflection;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.RepresentationModel;
@@ -213,6 +214,19 @@ internal sealed class YamlConverter
         {
             return ConvertToYamlMap(dict, depth - 1);
         }
+        else if (
+            IsGenericType(baseObj.GetType(), typeof(Memory<>)) ||
+            IsGenericType(baseObj.GetType(), typeof(ReadOnlyMemory<>))
+        )
+        {
+            MethodInfo toArrayMeth = baseObj.GetType().GetMethod(
+                "ToArray",
+                BindingFlags.Public | BindingFlags.Instance)!;
+
+            return ConvertToYamlSequence(
+                (Array)toArrayMeth.Invoke(baseObj, Array.Empty<object>())!,
+                depth - 1);
+        }
 
         // Treat any other type as a map and process accordingly.
         OrderedDictionary model = new();
@@ -232,6 +246,29 @@ internal sealed class YamlConverter
             catch (GetValueInvocationException e)
             {
                 propValue = e.Message;
+            }
+            catch (GetValueException)
+            {
+                // PowerShell fails to get ByRef struct values. We can do a bit
+                // more to convert Span<T> types to an array.
+                PropertyInfo? propTypeInfo = baseObj.GetType().GetProperty(prop.Name);
+                if (propTypeInfo == null)
+                {
+                    throw;
+                }
+
+                Type propType = propTypeInfo.PropertyType;
+                if (
+                    IsGenericType(propType, typeof(Span<>)) ||
+                    IsGenericType(propType, typeof(ReadOnlySpan<>))
+                )
+                {
+                    propValue = ReflectionHelper.SpanToArray(baseObj, propTypeInfo);
+                }
+                else
+                {
+                    throw;
+                }
             }
 
             model[prop.Name] = propValue;
@@ -253,4 +290,7 @@ internal sealed class YamlConverter
 
         return node;
     }
+
+    private static bool IsGenericType(Type objType, Type genericType)
+        => objType.IsGenericType && objType.GetGenericTypeDefinition() == genericType;
 }
