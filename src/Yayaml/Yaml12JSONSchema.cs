@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Globalization;
 using System.Linq;
-using System.Management.Automation;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -50,7 +49,7 @@ $
         if (commonScalar != null)
         {
             // If the values are a NaN or +/-Infinity they need to be tagged.
-            if ((new[] {".nan", ".inf", "-.inf"}).Contains(commonScalar.Value))
+            if ((new[] { ".nan", ".inf", "-.inf" }).Contains(commonScalar.Value))
             {
                 commonScalar.Tag = "!!float";
             }
@@ -68,10 +67,10 @@ $
 
     public override SequenceValue EmitSequence(object?[] values)
     {
-         return new(values)
-         {
+        return new(values)
+        {
             Style = CollectionStyle.Flow
-         };
+        };
     }
 
     public override object? ParseScalar(ScalarValue value) => value.Tag switch

@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
-using System.Management.Automation;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -79,7 +79,7 @@ $)
 ", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
 
     public override bool IsScalar(object? value)
-        => value is byte[];
+        => value is IList<byte>;
 
     public override ScalarValue EmitScalar(object? value)
     {
@@ -107,9 +107,9 @@ $)
                 Tag = noTag ? null : "!!timestamp",
             };
         }
-        else if (value is byte[] byteArray)
+        else if (value is IList<byte> byteArray)
         {
-            return new ScalarValue(Convert.ToBase64String(byteArray))
+            return new ScalarValue(Convert.ToBase64String(byteArray.ToArray()))
             {
                 Tag = "!!binary",
             };
