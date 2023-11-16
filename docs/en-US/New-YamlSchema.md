@@ -14,8 +14,9 @@ Creates a YAML schema definition.
 
 ```
 New-YamlSchema [-EmitMap <MapEmitter>] [-EmitScalar <ScalarEmitter>] [-EmitSequence <SequenceEmitter>]
- [-IsScalar <IsScalarCheck>] [-ParseMap <MapParser>] [-ParseScalar <ScalarParser>]
- [-ParseSequence <SequenceParser>] [-BaseSchema <YamlSchema>] [<CommonParameters>]
+ [-EmitTransformer <TransformEmitter>] [-IsScalar <IsScalarCheck>] [-ParseMap <MapParser>]
+ [-ParseScalar <ScalarParser>] [-ParseSequence <SequenceParser>] [-BaseSchema <YamlSchema>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -129,7 +130,77 @@ Will treat any `FileSystemInfo` objects as a scalar type.
 The default behaviour for Scalar values is to stringify the value.
 A custom `-EmitScalar` ScriptBlock can also be used if custom rules for stringifying the new types is desired.
 
-### Example 6 - Parse YAML with a custom map handler
+### Example 6 - Provide a custom transformer for a custom type
+```powershell
+PS C:\> class MyClass {
+    [string]$Title
+    [string]$Description
+}
+PS C:\> $schema = New-YamlSchema -EmitTransformer {
+    param($Value, $Schema)
+
+    if ($Value -is [MyClass]) {
+        [Ordered]@{
+            Title = $Value.Title
+            Description = $Value.Description | Add-YamlFormat -ScalarStyle Literal -PassThru
+        }
+    }
+    else {
+        $Schema.EmitTransformer($Value)
+    }
+}
+PS C:\> $obj = [MyClass]@{Title = 'Module'; Description = 'Information for the module'}
+PS C:\> $obj | ConvertTo-Yaml -Schema $schema
+# Title: Module
+# Description: |-
+#   Information for the module
+```
+
+Applies a custom transformation for any `MyClass` object that is being converted.
+This transformation ensures the `$Description` property is emitted in the literal scalar style.
+Any other object is treated as normal.
+
+### Example 7 - Provide a custom transformer without further processing
+```powershell
+PS C:\> $schema = New-YamlSchema -EmitTransformer {
+    param($Value, $Schema)
+
+    if ($Value -is [string]) {
+
+        $style = if ($Value.Length -ge 60) {
+            'Literal'
+        }
+        else {
+            'DoubleQuoted'
+        }
+
+        [Yayaml.ScalarValue]@{
+            Value = $Value
+            Style = $style
+        }
+    }
+    else {
+        $Schema.EmitTransformer($Value)
+    }
+}
+PS C:\> $obj = @(
+    "$('a' * 20)`n$('b' * 20)`n"
+    "$('a' * 20)`n$('b' * 20)`n$('c' * 20)`n$('d' * 20)"
+)
+PS C:\> $obj | ConvertTo-Yaml -Schema $schema -AsArray
+# - "aaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbb\n"
+# - |-
+#   aaaaaaaaaaaaaaaaaaaa
+#   bbbbbbbbbbbbbbbbbbbb
+#   cccccccccccccccccccc
+#   dddddddddddddddddddd
+```
+
+Applies a custom transformation to transform any string to a specific scalar format.
+Any string less than 60 characters will be enclosed in double quotes while any greater than 60 will use the literal style.
+As the transformer outputs the `Yayaml.ScalarValue` there will be no more transformation done on the value during serialization.
+
+### Example 8 - Parse YAML with a custom map handler
 ```powershell
 PS C:\> $schema = New-YamlSchema -ParseMap {
     param ($Value, $Schema)
@@ -163,7 +234,7 @@ PS C:\> (ConvertFrom-Yaml $yaml -Schema $schema).root
 Creates a custom map parser that will change the output value if it contains a specific key value.
 In this case `entry1` will be changed to the value `override` whereas `entry2` is untouched.
 
-### Example 7 - Parse YAML with a custom sequence handler
+### Example 9 - Parse YAML with a custom sequence handler
 ```powershell
 PS C:\> $schema = New-YamlSchema -ParseSequence {
     param ($Values, $Schema)
@@ -178,7 +249,7 @@ PS C:\> ConvertFrom-Yaml -InputObject 'foo: [1, 2, 3]' -Schema $schema
 
 Parses all sequence values and changes them to be a string delimited by `|`.
 
-### Example 8 - Parse YAML with a custom scalar handler
+### Example 10 - Parse YAML with a custom scalar handler
 ```powershell
 PS C:\> $schema = New-YamlSchema -ParseScalar {
     param ($Value, $Schema)
@@ -295,10 +366,42 @@ The list of values that need to be emitted.
 
 The base schema that was associated with the custom schema.
 The `$Schema.EmitSequence($Values)` function can be called to get the base schema to emit the sequence value using its rules.
-The ScriptBlock needs to return a ` [Yayaml.SequenceValue]` object that represents the final value to be serialized to YAML.
+The ScriptBlock needs to return a `[Yayaml.SequenceValue]` object that represents the final value to be serialized to YAML.
 
 ```yaml
 Type: SequenceEmitter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EmitTransformer
+A ScriptBlock that is called when `ConvertTo-Yaml` goes to emit a value and can be used to transform the input object into another value for emitting.
+This is useful for apply a custom serialization format for specific types rather than relying on the default behaviour.
+
+The ScriptBlock is called with 2 arguments:
+
++ `[object?]$Value`
+
+The value that needs to be emitted.
+
++ `[Yayaml.YamlSchema]$Schema`
+
+The base schema that was associated with the custom schema.
+The `$Schema.EmitSequence($Values)` function can be called to get the base schema to emit the sequence value using its rules.
+The default schema will emit the value as is without any transformation.
+
+It is possible to emit a `[Yayaml.MapValue]`, `[Yayaml.ScalarValue]`, or `[Yayaml.SequenceValue]` object which can specify custom YAML formatting options for the object.
+Returning one of these values will bypass any futher emit actions as it represents the final value to serialize.
+Otherwise the `-EmitMap`, `-EmitScalar`, and `-EmiSequence` parameters can be used to process the returned value in a more generic fashion for each node type.
+
+```yaml
+Type: TransformEmitter
 Parameter Sets: (All)
 Aliases:
 

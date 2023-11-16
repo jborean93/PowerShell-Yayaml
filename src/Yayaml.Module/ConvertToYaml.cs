@@ -25,7 +25,7 @@ public sealed class ConvertToYamlCommand : PSCmdlet
         ValueFromPipeline = true,
         ValueFromPipelineByPropertyName = true
     )]
-    [System.Management.Automation.AllowNull]
+    [AllowNull]
     public PSObject? InputObject { get; set; } = null;
 
     [Parameter]
@@ -105,13 +105,31 @@ internal sealed class YamlConverter
 
     public YamlNode ConvertToYamlObject(PSObject? inputObject, int depth)
     {
+        inputObject = _schema.EmitTransformer(inputObject);
         if (inputObject == null)
         {
             ScalarValue nullValue = _schema.EmitScalar(null);
             return GetScalarNode(nullValue);
         }
 
-        YamlNode node = ConvertToYamlNode(inputObject, depth);
+        YamlNode node;
+        if (inputObject.BaseObject is MapValue map)
+        {
+            node = ConvertToYamlMap(map, depth);
+        }
+        else if (inputObject.BaseObject is ScalarValue scalar)
+        {
+            node = GetScalarNode(scalar);
+        }
+        else if (inputObject.BaseObject is SequenceValue sequence)
+        {
+            node = ConvertToYamlSequence(sequence, depth);
+        }
+        else
+        {
+            node = ConvertToYamlNode(inputObject, depth);
+        }
+
         YayamlFormat? formatProp = SchemaHelpers.GetYayamlFormatProperty(inputObject);
         if (formatProp == null)
         {
@@ -135,26 +153,27 @@ internal sealed class YamlConverter
     }
 
     private YamlMappingNode ConvertToYamlMap(IDictionary dict, int depth)
-    {
-        MapValue toEmit = _schema.EmitMap(dict);
+        => ConvertToYamlMap(_schema.EmitMap(dict), depth);
 
+    private YamlMappingNode ConvertToYamlMap(MapValue value, int depth)
+    {
         YamlMappingNode node = new()
         {
-            Style = (MappingStyle)(int)toEmit.Style,
+            Style = (MappingStyle)(int)value.Style,
         };
 
-        foreach (DictionaryEntry entry in toEmit.Values)
+        foreach (DictionaryEntry entry in value.Values)
         {
-            PSObject? key = null;
+            PSObject? entryKey = null;
             if (entry.Key != NullKey.Value)
             {
-                key = SchemaHelpers.GetPSObject(entry.Key);
+                entryKey = SchemaHelpers.GetPSObject(entry.Key);
             }
-            PSObject? value = SchemaHelpers.GetPSObject(entry.Value);
+            PSObject? entryValue = SchemaHelpers.GetPSObject(entry.Value);
 
             node.Add(
-                ConvertToYamlObject(key, depth),
-                ConvertToYamlObject(value, depth)
+                ConvertToYamlObject(entryKey, depth),
+                ConvertToYamlObject(entryValue, depth)
             );
         }
 
@@ -162,17 +181,18 @@ internal sealed class YamlConverter
     }
 
     private YamlSequenceNode ConvertToYamlSequence(IList values, int depth)
-    {
-        SequenceValue toEmit = _schema.EmitSequence(values.Cast<object?>().ToArray());
+        => ConvertToYamlSequence(_schema.EmitSequence(values.Cast<object?>().ToArray()), depth);
 
+    private YamlSequenceNode ConvertToYamlSequence(SequenceValue value, int depth)
+    {
         YamlSequenceNode node = new()
         {
-            Style = (SequenceStyle)(int)toEmit.Style,
+            Style = (SequenceStyle)(int)value.Style,
         };
 
-        foreach (object? value in toEmit.Values)
+        foreach (object? v in value.Values)
         {
-            node.Add(ConvertToYamlObject(SchemaHelpers.GetPSObject(value), depth));
+            node.Add(ConvertToYamlObject(SchemaHelpers.GetPSObject(v), depth));
         }
 
         return node;

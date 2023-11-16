@@ -25,6 +25,9 @@ public class YamlSchema
     public virtual SequenceValue EmitSequence(object?[] values)
         => new(values);
 
+    public virtual PSObject? EmitTransformer(PSObject? value)
+        => value;
+
     /// <summary>
     /// Called when parsing a scalar value.
     /// </summary>

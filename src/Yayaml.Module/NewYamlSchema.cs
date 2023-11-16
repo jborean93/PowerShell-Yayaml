@@ -16,6 +16,9 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
     public SequenceEmitter? EmitSequence { get; set; }
 
     [Parameter]
+    public TransformEmitter? EmitTransformer { get; set; }
+
+    [Parameter]
     public IsScalarCheck? IsScalar { get; set; }
 
     [Parameter]
@@ -45,6 +48,7 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
             EmitMap == null &&
             EmitScalar == null &&
             EmitSequence == null &&
+            EmitTransformer == null &&
             ParseMap == null &&
             ParseScalar == null &&
             ParseSequence == null
@@ -60,6 +64,7 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
                 mapEmitter: EmitMap,
                 scalarEmitter: EmitScalar,
                 sequenceEmitter: EmitSequence,
+                transformEmitter: EmitTransformer,
                 mapParser: ParseMap,
                 scalarParser: ParseScalar,
                 sequenceParser: ParseSequence
