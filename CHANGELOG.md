@@ -3,6 +3,7 @@
 ## v0.3.0 - TBD
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `13.7.1`
++ Provide workaround when importing the module more than once
 
 ## v0.2.1 - 2023-10-13
 
