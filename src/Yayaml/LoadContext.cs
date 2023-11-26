@@ -1,9 +1,8 @@
+#if CORE
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
-
-[assembly: InternalsVisibleTo("Yayaml.Module")]
 
 namespace Yayaml;
 
@@ -69,3 +68,4 @@ public class LoadContext : AssemblyLoadContext
         }
     }
 }
+#endif

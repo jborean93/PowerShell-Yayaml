@@ -12,7 +12,7 @@ While there are a few other YAML modules out on the gallery this module includes
 + YAML 1.2 JSON parser and emitter
 + Support for custom schemas
 + Finer control over scalar, map, and sequence styles
-+ Loads `YamlDotNet` in an Assembly Load Context to avoid DLL hell and cross assembly conflicts
++ Loads `YamlDotNet` in an Assembly Load Context to avoid DLL hell and cross assembly conflicts (PowerShell 7+ only)
 
 There are schemas that support YAML 1.2 (default), 1.2 JSON, 1.1, and failsafe values.
 
@@ -22,7 +22,7 @@ See [Yayaml index](docs/en-US/Yayaml.md) for more details.
 
 These cmdlets have the following requirements
 
-* PowerShell v7.2 or newer
+* PowerShell v5.1 or newer
 
 ## Examples
 

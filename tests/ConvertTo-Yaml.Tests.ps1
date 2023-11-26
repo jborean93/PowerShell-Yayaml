@@ -103,9 +103,9 @@ Describe "ConvertTo-Yaml" {
             @{Value = [IntPtr]::Zero; Expected = 0}
             @{Value = [UIntPtr]::Zero; Expected = 0}
             @{Value = [IntPtr]1; Expected = 1}
-            @{Value = [UIntPtr]1; Expected = 1}
+            @{Value = [UIntPtr][UInt32]1; Expected = 1}
             @{Value = [IntPtr]2147483647; Expected = 2147483647}
-            @{Value = [UIntPtr]4294967295; Expected = 4294967295}
+            @{Value = [UIntPtr][UInt32]4294967295; Expected = 4294967295}
         ) {
             param ($Value, $Expected)
             $actual = ConvertTo-Yaml $Value
@@ -213,7 +213,7 @@ Describe "ConvertTo-Yaml" {
             $actual | Should -Be "mem:$n- 1$n- 2"
         }
 
-        It "Emits Span and ReadOnlySpan properties" {
+        It "Emits Span and ReadOnlySpan properties" -Skip:(-not $IsCoreCLR) {
             Add-Type -TypeDefinition @'
 using System;
 

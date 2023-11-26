@@ -1,21 +1,53 @@
+using System.Collections;
+using System.Collections.Generic;
 using System.Management.Automation;
+using System.Management.Automation.Language;
 
 namespace Yayaml.Module;
 
+#if CORE
 public class YamlSchemaCompletionsAttribute : ArgumentCompletionsAttribute
 {
     public YamlSchemaCompletionsAttribute()
-        : base(
-            "Blank",
-            "Yaml11",
-            "Yaml12",
-            "Yaml12JSON"
-        )
+        : base(SchemaParameterTransformer.KNOWN_SCHEMAS)
     { }
 }
+#else
+public class YamlSchemaCompletionsAttribute : IArgumentCompleter {
+    public IEnumerable<CompletionResult> CompleteArgument(
+        string commandName,
+        string parameterName,
+        string wordToComplete,
+        CommandAst commandAst,
+        IDictionary fakeBoundParameters
+    )
+    {
+        if (string.IsNullOrWhiteSpace(wordToComplete))
+        {
+            wordToComplete = "";
+        }
+
+        WildcardPattern pattern = new($"{wordToComplete}*");
+        foreach (string encoding in SchemaParameterTransformer.KNOWN_SCHEMAS)
+        {
+            if (pattern.IsMatch(encoding))
+            {
+                yield return new CompletionResult(encoding);
+            }
+        }
+    }
+}
+#endif
 
 public sealed class SchemaParameterTransformer : ArgumentTransformationAttribute
 {
+    internal static string[] KNOWN_SCHEMAS = new[] {
+        "Blank",
+        "Yaml11",
+        "Yaml12",
+        "Yaml12JSON"
+    };
+
     public override object Transform(EngineIntrinsics engineIntrinsics,
         object? inputData)
     {
