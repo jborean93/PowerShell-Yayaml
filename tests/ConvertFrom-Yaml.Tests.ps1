@@ -180,7 +180,7 @@ list:
 
             $actual = (ConvertFrom-Yaml -InputObject $Value -Schema Yaml11).foo
             Should -ActualValue $actual -BeOfType ([byte[]])
-            [System.Convert]::ToHexString($actual) | Should -Be $Expected
+            -join ($actual | ForEach-Object ToString X2) | Should -Be $Expected
         }
         It "Parses bool <Value>" -TestCases @(
             @{Value = 'n'; Expected = $false}
@@ -336,6 +336,10 @@ list:
             @{Value = '.NAN'; Expected = [Double]::NaN}
         ) {
             param ($Value, $Expected)
+
+            if (-not $IsCoreCLR -and $Value -in @('2.0E+1000', '-2.0E+1000')) {
+                Set-ItResult -Skipped -Because "PowerShell can't handle doubles of this size"
+            }
 
             $actual = ConvertFrom-Yaml -InputObject $Value -Schema Yaml11
             if ($Expected.ToString() -eq 'NaN') {
@@ -575,6 +579,10 @@ dict:
         ) {
             param ($Value, $Expected)
 
+            if (-not $IsCoreCLR -and $Value -in @('2e+1000', '-2e+1000')) {
+                Set-ItResult -Skipped -Because "PowerShell can't handle doubles of this size"
+            }
+
             $actual = ConvertFrom-Yaml -InputObject $Value
             if ($Expected.ToString() -eq 'NaN') {
                 # Normal comparison doesn't work with NaN
@@ -752,6 +760,10 @@ dict:
             @{Value = '!!float .nan'; Expected = [Double]::NaN}
         ) {
             param ($Value, $Expected)
+
+            if (-not $IsCoreCLR -and $Value -in @('2e+1000', '-2e+1000')) {
+                Set-ItResult -Skipped -Because "PowerShell can't handle doubles of this size"
+            }
 
             $actual = ConvertFrom-Yaml -InputObject $Value -Schema Yaml12JSON
             if ($Expected.ToString() -eq 'NaN') {

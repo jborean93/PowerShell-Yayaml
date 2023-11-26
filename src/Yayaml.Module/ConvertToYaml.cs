@@ -38,7 +38,11 @@ public sealed class ConvertToYamlCommand : PSCmdlet
     public SwitchParameter IndentSequence { get; set; }
 
     [Parameter]
+#if CORE
     [YamlSchemaCompletions]
+#else
+    [ArgumentCompleter(typeof(YamlSchemaCompletionsAttribute))]
+#endif
     [SchemaParameterTransformer]
     public YamlSchema? Schema { get; set; }
 
@@ -285,7 +289,7 @@ internal sealed class YamlConverter
         };
         if (!string.IsNullOrWhiteSpace(value.Tag))
         {
-            node.Tag = new(value.Tag);
+            node.Tag = new(value.Tag!);
         }
 
         return node;

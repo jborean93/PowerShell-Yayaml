@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{32EF6859-C1AA-4118-AFC3-811DE164F574}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Yayaml", "src\Yayaml\Yayaml.csproj", "{598D032C-2373-4292-94DD-DFE934C57A3A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Yayaml.Module", "src\Yayaml.Module\Yayaml.Module.csproj", "{4E17AD64-871F-4344-A60F-35408CD96C8E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{598D032C-2373-4292-94DD-DFE934C57A3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{598D032C-2373-4292-94DD-DFE934C57A3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{598D032C-2373-4292-94DD-DFE934C57A3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{598D032C-2373-4292-94DD-DFE934C57A3A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E17AD64-871F-4344-A60F-35408CD96C8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E17AD64-871F-4344-A60F-35408CD96C8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E17AD64-871F-4344-A60F-35408CD96C8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E17AD64-871F-4344-A60F-35408CD96C8E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{598D032C-2373-4292-94DD-DFE934C57A3A} = {32EF6859-C1AA-4118-AFC3-811DE164F574}
+		{4E17AD64-871F-4344-A60F-35408CD96C8E} = {32EF6859-C1AA-4118-AFC3-811DE164F574}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F31C0D6D-8FFD-44FD-9607-D8BD49E9747D}
+	EndGlobalSection
+EndGlobal

@@ -56,7 +56,17 @@ public class YamlSchema
     internal static YamlSchema CreateDefault() => new Yaml12Schema();
 }
 
-internal record YayamlFormat(CollectionStyle CollectionStyle, ScalarStyle ScalarStyle);
+internal class YayamlFormat
+{
+    public CollectionStyle CollectionStyle { get; }
+    public ScalarStyle ScalarStyle { get; }
+
+    public YayamlFormat(CollectionStyle collectionStyle, ScalarStyle scalarStyle)
+    {
+        CollectionStyle = collectionStyle;
+        ScalarStyle = scalarStyle;
+    }
+}
 
 internal static class SchemaHelpers
 {

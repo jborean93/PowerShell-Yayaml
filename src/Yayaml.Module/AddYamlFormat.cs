@@ -29,10 +29,7 @@ public sealed class AddYamlFormatCommand : PSCmdlet
             return;
         }
 
-        YayamlFormat format = new(
-            CollectionStyle: CollectionStyle,
-            ScalarStyle: ScalarStyle
-        );
+        YayamlFormat format = new(CollectionStyle, ScalarStyle);
         InputObject.Properties.Add(new PSNoteProperty(SchemaHelpers.YAYAML_FORMAT_ID, format));
 
         if (PassThru)

@@ -1,21 +1,39 @@
 # Copyright: (c) 2023, Jordan Borean (@jborean93) <jborean93@gmail.com>
 # MIT License (see LICENSE or https://opensource.org/licenses/MIT)
 
-# This is used to load the shared assembly in the Default ALC which then sets
-# an ALC for the moulde and any dependencies of that module to be loaded in
-# that ALC.
+$importModule = Get-Command -Name Import-Module -Module Microsoft.PowerShell.Core
+$moduleName = [System.IO.Path]::GetFileNameWithoutExtension($PSCommandPath)
 
-$isReload = $true
-if (-not ('Yayaml.LoadContext' -as [type])) {
-    $isReload = $false
-    $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($PSCommandPath)
-    Add-Type -Path ([System.IO.Path]::Combine($PSScriptRoot, 'bin', 'net6.0', "$moduleName.dll"))
+if (-not $IsCoreClr) {
+    # PowerShell 5.1 has no concept of an Assembly Load Context so it will
+    # just load the module assembly directly.
+
+    $innerMod = if ('Yayaml.Module.NewYamlSchemaCommand' -as [type]) {
+        $modAssembly = [Yayaml.Module.NewYamlSchemaCommand].Assembly
+        &$importModule -Assembly $modAssembly -Force -PassThru
+    }
+    else {
+        $modPath = [System.IO.Path]::Combine($PSScriptRoot, 'bin', 'net472', "$moduleName.Module.dll")
+        &$importModule -Name $modPath -ErrorAction Stop -PassThru
+    }
+}
+else {
+    # This is used to load the shared assembly in the Default ALC which then sets
+    # an ALC for the moulde and any dependencies of that module to be loaded in
+    # that ALC.
+
+    $isReload = $true
+    if (-not ('Yayaml.LoadContext' -as [type])) {
+        $isReload = $false
+
+        Add-Type -Path ([System.IO.Path]::Combine($PSScriptRoot, 'bin', 'net6.0', "$moduleName.dll"))
+    }
+
+    $mainModule = [Yayaml.LoadContext]::Initialize()
+    $innerMod = &$importModule -Assembly $mainModule -PassThru:$isReload
 }
 
-$mainModule = [Yayaml.LoadContext]::Initialize()
-$alcModule = Import-Module -Assembly $mainModule -PassThru
-
-if ($isReload) {
+if ($innerMod) {
     # Bug in pwsh, Import-Module in an assembly will pick up a cached instance
     # and not call the same path to set the nested module's cmdlets to the
     # current module scope.
@@ -24,7 +42,7 @@ if ($isReload) {
         'AddExportedCmdlet',
         [System.Reflection.BindingFlags]'Instance, NonPublic'
     )
-    foreach ($cmd in $alcModule.ExportedCommands.Values) {
+    foreach ($cmd in $innerMod.ExportedCommands.Values) {
         $addExportedCmdlet.Invoke($ExecutionContext.SessionState.Module, @(, $cmd))
     }
 }

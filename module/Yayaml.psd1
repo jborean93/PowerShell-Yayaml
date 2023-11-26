@@ -12,7 +12,6 @@
 
     # Script module or binary module file associated with this manifest.
     RootModule = 'Yayaml.psm1'
-    # RootModule = 'bin/net6.0/Yayaml.dll'
 
     # Version number of this module.
     ModuleVersion = '0.3.0'
@@ -36,10 +35,10 @@
     Description = 'Yet Another YAML parser and writer for PowerShell'
 
     # Minimum version of the PowerShell engine required by this module
-    PowerShellVersion = '7.2'
+    PowerShellVersion = '5.1'
 
     # Minimum version of Microsoft .NET Framework required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-    # DotNetFrameworkVersion = '4.7.2'
+    DotNetFrameworkVersion = '4.7.2'
 
     # Minimum version of the common language runtime (CLR) required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
     # ClrVersion = '4.0'

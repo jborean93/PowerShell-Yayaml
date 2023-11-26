@@ -49,7 +49,9 @@ internal static class ReflectionHelper
             MethodInfo spanToArrayMeth = spanType.GetMethod(
                 "ToArray",
                 BindingFlags.Public | BindingFlags.Instance,
-                Array.Empty<Type>()
+                null,
+                Array.Empty<Type>(),
+                null
             )!;
 
             const string invokeMethName = "Invoke";

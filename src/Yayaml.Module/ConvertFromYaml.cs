@@ -30,7 +30,11 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     public SwitchParameter NoEnumerate { get; set; }
 
     [Parameter]
+#if CORE
     [YamlSchemaCompletions]
+#else
+    [ArgumentCompleter(typeof(YamlSchemaCompletionsAttribute))]
+#endif
     [SchemaParameterTransformer]
     public YamlSchema? Schema { get; set; }
 

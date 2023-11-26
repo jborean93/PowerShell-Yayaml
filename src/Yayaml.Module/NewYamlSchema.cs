@@ -28,7 +28,11 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
     public SequenceParser? ParseSequence { get; set; }
 
     [Parameter]
+#if CORE
     [YamlSchemaCompletions]
+#else
+    [ArgumentCompleter(typeof(YamlSchemaCompletionsAttribute))]
+#endif
     [SchemaParameterTransformer]
     public YamlSchema? BaseSchema { get; set; }
 
