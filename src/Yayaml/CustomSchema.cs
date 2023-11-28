@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Management.Automation;
 
 namespace Yayaml;
 
@@ -58,6 +59,14 @@ public delegate object? SequenceParser(SequenceValue value, YamlSchema schema);
 /// <returns>The final Sequence value to emit.</returns>
 public delegate SequenceValue SequenceEmitter(object?[] values, YamlSchema schema);
 
+/// <summary>
+/// Delegate signature for a custom emit transformer ScriptBlock.
+/// </summary>
+/// <param name="value">The value to transform when emitting.</param>
+/// <param name="schema">The base schema that can be used as a fallback.</param>
+/// <returns>The final value to use when emitting.</returns>
+public delegate PSObject? TransformEmitter(PSObject? value, YamlSchema schema);
+
 public sealed class CustomSchema : YamlSchema
 {
     private YamlSchema _baseSchema;
@@ -68,12 +77,14 @@ public sealed class CustomSchema : YamlSchema
     private ScalarParser? _scalarParser;
     private SequenceEmitter? _sequenceEmitter;
     private SequenceParser? _sequenceParser;
+    private TransformEmitter? _transformEmitter;
 
     internal CustomSchema(
         YamlSchema baseSchema,
         MapEmitter? mapEmitter = null,
         ScalarEmitter? scalarEmitter = null,
         SequenceEmitter? sequenceEmitter = null,
+        TransformEmitter? transformEmitter = null,
         IsScalarCheck? isScalar = null,
         MapParser? mapParser = null,
         ScalarParser? scalarParser = null,
@@ -88,6 +99,7 @@ public sealed class CustomSchema : YamlSchema
         _scalarParser = scalarParser;
         _sequenceEmitter = sequenceEmitter;
         _sequenceParser = sequenceParser;
+        _transformEmitter = transformEmitter;
     }
 
     public override bool IsScalar(object? value)
@@ -109,6 +121,11 @@ public sealed class CustomSchema : YamlSchema
         => _sequenceEmitter == null
             ? _baseSchema.EmitSequence(values)
             : _sequenceEmitter(values, _baseSchema);
+
+    public override PSObject? EmitTransformer(PSObject? value)
+        => _transformEmitter == null
+            ? _baseSchema.EmitTransformer(value)
+            : _transformEmitter(value, _baseSchema);
 
     public override object? ParseScalar(ScalarValue value)
         => _scalarParser == null

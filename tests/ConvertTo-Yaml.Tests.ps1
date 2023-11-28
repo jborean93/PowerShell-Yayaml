@@ -11,12 +11,12 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits array in dict" {
-            $actual = ConvertTo-Yaml -InputObject @{foo = 1, 2, 3}
+            $actual = ConvertTo-Yaml -InputObject @{ foo = 1, 2, 3 }
             $actual | Should -Be "foo:$n- 1$n- 2$n- 3"
         }
 
         It "Emits array in dict with indent" {
-            $actual = ConvertTo-Yaml -InputObject @{foo = 1, 2, 3} -IndentSequence
+            $actual = ConvertTo-Yaml -InputObject @{ foo = 1, 2, 3 } -IndentSequence
             $actual | Should -Be "foo:$n  - 1$n  - 2$n  - 3"
         }
 
@@ -46,7 +46,7 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits hashtable" {
-            $value = @{Foo = 'bar'}
+            $value = @{ Foo = 'bar' }
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be 'foo: bar'
         }
@@ -66,7 +66,7 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits OrderedDictionary" {
-            $value = [Ordered]@{Foo = 'bar'}
+            $value = [Ordered]@{ Foo = 'bar' }
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be 'foo: bar'
         }
@@ -94,18 +94,18 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits null key" {
-            $value = @{[Yayaml.NullKey]::Value = 'foo'}
+            $value = @{ [Yayaml.NullKey]::Value = 'foo' }
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be 'null: foo'
         }
 
         It "Emits IntPtr value <Value>" -TestCases @(
-            @{Value = [IntPtr]::Zero; Expected = 0}
-            @{Value = [UIntPtr]::Zero; Expected = 0}
-            @{Value = [IntPtr]1; Expected = 1}
-            @{Value = [UIntPtr][UInt32]1; Expected = 1}
-            @{Value = [IntPtr]2147483647; Expected = 2147483647}
-            @{Value = [UIntPtr][UInt32]4294967295; Expected = 4294967295}
+            @{ Value = [IntPtr]::Zero; Expected = 0 }
+            @{ Value = [UIntPtr]::Zero; Expected = 0 }
+            @{ Value = [IntPtr]1; Expected = 1 }
+            @{ Value = [UIntPtr][UInt32]1; Expected = 1 }
+            @{ Value = [IntPtr]2147483647; Expected = 2147483647 }
+            @{ Value = [UIntPtr][UInt32]4294967295; Expected = 4294967295 }
         ) {
             param ($Value, $Expected)
             $actual = ConvertTo-Yaml $Value
@@ -128,7 +128,7 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits warning for depth for dict" {
-            $actual = ConvertTo-Yaml -InputObject @{1 = @{2 = @{3 = @{4 = 'value'}}}} -WarningVariable warn -WarningAction SilentlyContinue
+            $actual = ConvertTo-Yaml -InputObject @{ 1 = @{ 2 = @{ 3 = @{ 4 = 'value' } } } } -WarningVariable warn -WarningAction SilentlyContinue
             $actual | Should -Be "1:$n  2:$n    3: System.Collections.Hashtable"
             $warn.Count | Should -Be 1
             [string]$warn[0] | Should -Be "Resulting YAML is truncated as serialization has exceeded the set depth of 2"
@@ -142,7 +142,7 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Extends the depth for dict" {
-            $actual = ConvertTo-Yaml -InputObject @{1 = @{2 = @{3 = @{4 = 1}}}} -WarningVariable warn -Depth 3
+            $actual = ConvertTo-Yaml -InputObject @{ 1 = @{ 2 = @{ 3 = @{ 4 = 1 } } } } -WarningVariable warn -Depth 3
             $warn | Should -BeNullOrEmpty
             $actual | Should -Be "1:$n  2:$n    3:$n      4: 1"
         }
@@ -154,19 +154,19 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits dict with custom style <Style>" -TestCases @(
-            @{Style = "Block"; Expected = "foo: bar"}
-            @{Style = "Flow"; Expected = "{foo: bar}"}
+            @{ Style = "Block"; Expected = "foo: bar" }
+            @{ Style = "Flow"; Expected = "{foo: bar}" }
         ) {
             param ($Style, $Expected)
 
-            $value = @{foo = 'bar'} | Add-YamlFormat -CollectionStyle $Style -PassThru
+            $value = @{ foo = 'bar' } | Add-YamlFormat -CollectionStyle $Style -PassThru
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be $Expected
         }
 
         It "Emits list with custom style <Style>" -TestCases @(
-            @{Style = "Block"; Expected = "- 1$n- 2"}
-            @{Style = "Flow"; Expected = "[1, 2]"}
+            @{ Style = "Block"; Expected = "- 1$n- 2" }
+            @{ Style = "Flow"; Expected = "[1, 2]" }
         ) {
             param ($Style, $Expected)
 
@@ -176,12 +176,12 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits string with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = "abc"}
-            @{Style = "Plain"; Expected = "abc"}
-            @{Style = "SingleQuoted"; Expected = "'abc'"}
-            @{Style = "DoubleQuoted"; Expected = '"abc"'}
-            @{Style = "Literal"; Expected = "|-$n  abc"}
-            @{Style = "Folded"; Expected = ">-$n  abc"}
+            @{ Style = "Any"; Expected = "abc" }
+            @{ Style = "Plain"; Expected = "abc" }
+            @{ Style = "SingleQuoted"; Expected = "'abc'" }
+            @{ Style = "DoubleQuoted"; Expected = '"abc"' }
+            @{ Style = "Literal"; Expected = "|-$n  abc" }
+            @{ Style = "Folded"; Expected = ">-$n  abc" }
         ) {
             param ($Style, $Expected)
 
@@ -191,7 +191,7 @@ Describe "ConvertTo-Yaml" {
         }
 
         It "Emits dictionary like value with custom formatting" {
-            $obj = [PSCustomObject]@{Foo = 1}
+            $obj = [PSCustomObject]@{ Foo = 1 }
             $obj | Add-YamlFormat -CollectionStyle Flow
             $actual = $obj | ConvertTo-Yaml
             $actual | Should -Be '{Foo: 1}'
@@ -200,7 +200,7 @@ Describe "ConvertTo-Yaml" {
         It "Emits Memory" {
             $mem = [System.Memory[byte]]::new([byte[]]@(1, 2))
 
-            $value = @{mem = $mem}
+            $value = @{ mem = $mem }
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be "mem:$n- 1$n- 2"
         }
@@ -208,7 +208,7 @@ Describe "ConvertTo-Yaml" {
         It "Emits ReadOnlyMemory" {
             $mem = [System.ReadOnlyMemory[byte]]::new([byte[]]@(1, 2))
 
-            $value = @{mem = $mem}
+            $value = @{ mem = $mem }
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be "mem:$n- 1$n- 2"
         }
@@ -259,35 +259,35 @@ public class SpanTest
 
         It "Emits <Value.GetType().Name> value <Value>" -TestCases @(
             # bool
-            @{Value = $true; Expected = 'True'}
-            @{Value = $false; Expected = 'False'}
+            @{ Value = $true; Expected = 'True' }
+            @{ Value = $false; Expected = 'False' }
 
             # int
-            @{Value = 0; Expected = '0'}
-            @{Value = 1; Expected = '1'}
-            @{Value = -1; Expected = '-1'}
-            @{Value = [System.IO.FileShare]::Read; Expected = 'Read'}
-            @{Value = [byte]1; Expected = '1'}
-            @{Value = [sbyte]1; Expected = '1'}
-            @{Value = [int16]1; Expected = '1'}
-            @{Value = [uint16]1; Expected = '1'}
-            @{Value = [int32]1; Expected = '1'}
-            @{Value = [uint32]1; Expected = '1'}
-            @{Value = [int64]1; Expected = '1'}
-            @{Value = [uint64]1; Expected = '1'}
-            @{Value = [System.Numerics.BigInteger]::new(1); Expected = '1'}
+            @{ Value = 0; Expected = '0' }
+            @{ Value = 1; Expected = '1' }
+            @{ Value = -1; Expected = '-1' }
+            @{ Value = [System.IO.FileShare]::Read; Expected = 'Read' }
+            @{ Value = [byte]1; Expected = '1' }
+            @{ Value = [sbyte]1; Expected = '1' }
+            @{ Value = [int16]1; Expected = '1' }
+            @{ Value = [uint16]1; Expected = '1' }
+            @{ Value = [int32]1; Expected = '1' }
+            @{ Value = [uint32]1; Expected = '1' }
+            @{ Value = [int64]1; Expected = '1' }
+            @{ Value = [uint64]1; Expected = '1' }
+            @{ Value = [System.Numerics.BigInteger]::new(1); Expected = '1' }
 
             # str
-            @{Value = 'abc'; Expected = 'abc'}
-            @{Value = '1'; Expected = '1'}
-            @{Value = '0x1'; Expected = '0x1'}
-            @{Value = '""'; Expected = '''""'''}
-            @{Value = "''"; Expected = '"''''"'}
-            @{Value = 'yes'; Expected = 'yes'}
-            @{Value = 'true'; Expected = 'true'}
-            @{Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'}
-            @{Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''}
-            @{Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"}
+            @{ Value = 'abc'; Expected = 'abc' }
+            @{ Value = '1'; Expected = '1' }
+            @{ Value = '0x1'; Expected = '0x1' }
+            @{ Value = '""'; Expected = '''""''' }
+            @{ Value = "''"; Expected = '"''''"' }
+            @{ Value = 'yes'; Expected = 'yes' }
+            @{ Value = 'true'; Expected = 'true' }
+            @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"' }
+            @{ Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"''' }
+            @{ Value = '\U0001F4A9'; Expected = "'\U0001F4A9'" }
         ) {
             param ($Value, $Expected)
             $actual = ConvertTo-Yaml -InputObject $Value -Schema Blank
@@ -295,7 +295,7 @@ public class SpanTest
         }
 
         It "Emits dict" {
-            $actual = ConvertTo-Yaml -InputObject @{foo = 'bar'} -Schema Blank
+            $actual = ConvertTo-Yaml -InputObject @{ foo = 'bar' } -Schema Blank
             $actual | Should -Be "foo: bar"
         }
 
@@ -312,60 +312,60 @@ public class SpanTest
         }
         It "Emits <Value.GetType().Name> value <Value>" -TestCases @(
             # bool
-            @{Value = $true; Expected = 'true'; Roundtrip = $true}
-            @{Value = $false; Expected = 'false'; Roundtrip = $false}
+            @{ Value = $true; Expected = 'true'; Roundtrip = $true }
+            @{ Value = $false; Expected = 'false'; Roundtrip = $false }
 
             # int
-            @{Value = 0; Expected = '0'; Roundtrip = 0}
-            @{Value = 1; Expected = '1'; Roundtrip = 1}
-            @{Value = -1; Expected = '-1'; Roundtrip = -1}
-            @{Value = [System.IO.FileShare]::Read; Expected = '1'; Roundtrip = 1}
-            @{Value = [byte]1; Expected = 1; Roundtrip = 1}
-            @{Value = [sbyte]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int16]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint16]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int32]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint32]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int64]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint64]1; Expected = 1; Roundtrip = 1}
-            @{Value = [System.Numerics.BigInteger]::new(1); Expected = 1; Roundtrip = 1}
+            @{ Value = 0; Expected = '0'; Roundtrip = 0 }
+            @{ Value = 1; Expected = '1'; Roundtrip = 1 }
+            @{ Value = -1; Expected = '-1'; Roundtrip = -1 }
+            @{ Value = [System.IO.FileShare]::Read; Expected = '1'; Roundtrip = 1 }
+            @{ Value = [byte]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [sbyte]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int16]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint16]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int32]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint32]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int64]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint64]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [System.Numerics.BigInteger]::new(1); Expected = 1; Roundtrip = 1 }
 
             # float
-            @{Value = [float]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [float]'1'; Expected = '1.0e+0'; Roundtrip = [double]'1'}
-            @{Value = [float]'1.0'; Expected = '1.0e+0'; Roundtrip = [double]'1'}
-            @{Value = [float]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e+20'}
-            @{Value = [float]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e+20'}
-            @{Value = [float]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [float]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
-            @{Value = [float]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity}
-            @{Value = [float]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity}
-            @{Value = [float]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN}
-            @{Value = [double]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20'}
-            @{Value = [double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20'}
-            @{Value = [double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
-            @{Value = [double]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity}
-            @{Value = [double]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity}
-            @{Value = [double]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN}
-            @{Value = [decimal]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [decimal][double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20'}
-            @{Value = [decimal][double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20'}
-            @{Value = [decimal][double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [decimal][double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
+            @{ Value = [float]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [float]'1'; Expected = '1.0e+0'; Roundtrip = [double]'1' }
+            @{ Value = [float]'1.0'; Expected = '1.0e+0'; Roundtrip = [double]'1' }
+            @{ Value = [float]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e+20' }
+            @{ Value = [float]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e+20' }
+            @{ Value = [float]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [float]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
+            @{ Value = [float]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity }
+            @{ Value = [float]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity }
+            @{ Value = [float]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN }
+            @{ Value = [double]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20' }
+            @{ Value = [double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20' }
+            @{ Value = [double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
+            @{ Value = [double]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity }
+            @{ Value = [double]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity }
+            @{ Value = [double]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN }
+            @{ Value = [decimal]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [decimal][double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20' }
+            @{ Value = [decimal][double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20' }
+            @{ Value = [decimal][double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [decimal][double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
 
             # str
-            @{Value = 'abc'; Expected = 'abc'; Roundtrip = 'abc'}
-            @{Value = '1'; Expected = '"1"'; Roundtrip = '1'}
-            @{Value = '0x1'; Expected = '"0x1"'; Roundtrip = '0x1'}
-            @{Value = '""'; Expected = '''""'''; Roundtrip = '""'}
-            @{Value = "''"; Expected = '"''''"'; Roundtrip = "''"}
-            @{Value = 'yes'; Expected = '"yes"'; Roundtrip = 'yes'}
-            @{Value = 'true'; Expected = '"true"'; Roundtrip = 'true'}
-            @{Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
-            @{Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''; Roundtrip = '"\U0001F4A9"'}
-            @{Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"; Roundtrip = '\U0001F4A9'}
+            @{ Value = 'abc'; Expected = 'abc'; Roundtrip = 'abc' }
+            @{ Value = '1'; Expected = '"1"'; Roundtrip = '1' }
+            @{ Value = '0x1'; Expected = '"0x1"'; Roundtrip = '0x1' }
+            @{ Value = '""'; Expected = '''""'''; Roundtrip = '""' }
+            @{ Value = "''"; Expected = '"''''"'; Roundtrip = "''" }
+            @{ Value = 'yes'; Expected = '"yes"'; Roundtrip = 'yes' }
+            @{ Value = 'true'; Expected = '"true"'; Roundtrip = 'true' }
+            @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))" }
+            @{ Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''; Roundtrip = '"\U0001F4A9"' }
+            @{ Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"; Roundtrip = '\U0001F4A9' }
 
             # timestamp
             @{
@@ -450,7 +450,7 @@ public class SpanTest
         }
 
         It "Emits dict" {
-            $actual = ConvertTo-Yaml -InputObject @{foo = 'bar'} -Schema Yaml11
+            $actual = ConvertTo-Yaml -InputObject @{ foo = 'bar' } -Schema Yaml11
             $actual | Should -Be 'foo: bar'
         }
 
@@ -460,12 +460,12 @@ public class SpanTest
         }
 
         It "Emits bool with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = 'true'}
-            @{Style = "Plain"; Expected = 'true'}
-            @{Style = "SingleQuoted"; Expected = "!!bool 'true'"}
-            @{Style = "DoubleQuoted"; Expected = '!!bool "true"'}
-            @{Style = "Literal"; Expected = "!!bool |-$n  true"}
-            @{Style = "Folded"; Expected = "!!bool >-$n  true"}
+            @{ Style = "Any"; Expected = 'true' }
+            @{ Style = "Plain"; Expected = 'true' }
+            @{ Style = "SingleQuoted"; Expected = "!!bool 'true'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!bool "true"' }
+            @{ Style = "Literal"; Expected = "!!bool |-$n  true" }
+            @{ Style = "Folded"; Expected = "!!bool >-$n  true" }
         ) {
             param ($Style, $Expected)
 
@@ -480,12 +480,12 @@ public class SpanTest
         }
 
         It "Emits enum with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1'}
-            @{Style = "Plain"; Expected = '1'}
-            @{Style = "SingleQuoted"; Expected = "!!int '1'"}
-            @{Style = "DoubleQuoted"; Expected = '!!int "1"'}
-            @{Style = "Literal"; Expected = "!!int |-$n  1"}
-            @{Style = "Folded"; Expected = "!!int >-$n  1"}
+            @{ Style = "Any"; Expected = '1' }
+            @{ Style = "Plain"; Expected = '1' }
+            @{ Style = "SingleQuoted"; Expected = "!!int '1'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!int "1"' }
+            @{ Style = "Literal"; Expected = "!!int |-$n  1" }
+            @{ Style = "Folded"; Expected = "!!int >-$n  1" }
         ) {
             param ($Style, $Expected)
 
@@ -500,12 +500,12 @@ public class SpanTest
         }
 
         It "Emits int with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1'}
-            @{Style = "Plain"; Expected = '1'}
-            @{Style = "SingleQuoted"; Expected = "!!int '1'"}
-            @{Style = "DoubleQuoted"; Expected = '!!int "1"'}
-            @{Style = "Literal"; Expected = "!!int |-$n  1"}
-            @{Style = "Folded"; Expected = "!!int >-$n  1"}
+            @{ Style = "Any"; Expected = '1' }
+            @{ Style = "Plain"; Expected = '1' }
+            @{ Style = "SingleQuoted"; Expected = "!!int '1'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!int "1"' }
+            @{ Style = "Literal"; Expected = "!!int |-$n  1" }
+            @{ Style = "Folded"; Expected = "!!int >-$n  1" }
         ) {
             param ($Style, $Expected)
 
@@ -520,12 +520,12 @@ public class SpanTest
         }
 
         It "Emits float with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1.1e+0'}
-            @{Style = "Plain"; Expected = '1.1e+0'}
-            @{Style = "SingleQuoted"; Expected = "!!float '1.1e+0'"}
-            @{Style = "DoubleQuoted"; Expected = '!!float "1.1e+0"'}
-            @{Style = "Literal"; Expected = "!!float |-$n  1.1e+0"}
-            @{Style = "Folded"; Expected = "!!float >-$n  1.1e+0"}
+            @{ Style = "Any"; Expected = '1.1e+0' }
+            @{ Style = "Plain"; Expected = '1.1e+0' }
+            @{ Style = "SingleQuoted"; Expected = "!!float '1.1e+0'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!float "1.1e+0"' }
+            @{ Style = "Literal"; Expected = "!!float |-$n  1.1e+0" }
+            @{ Style = "Folded"; Expected = "!!float >-$n  1.1e+0" }
         ) {
             param ($Style, $Expected)
 
@@ -540,12 +540,12 @@ public class SpanTest
         }
 
         It "Emits string with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = 'abc'}
-            @{Style = "Plain"; Expected = "abc"}
-            @{Style = "SingleQuoted"; Expected = "'abc'"}
-            @{Style = "DoubleQuoted"; Expected = '"abc"'}
-            @{Style = "Literal"; Expected = "|-$n  abc"}
-            @{Style = "Folded"; Expected = ">-$n  abc"}
+            @{ Style = "Any"; Expected = 'abc' }
+            @{ Style = "Plain"; Expected = "abc" }
+            @{ Style = "SingleQuoted"; Expected = "'abc'" }
+            @{ Style = "DoubleQuoted"; Expected = '"abc"' }
+            @{ Style = "Literal"; Expected = "|-$n  abc" }
+            @{ Style = "Folded"; Expected = ">-$n  abc" }
         ) {
             param ($Style, $Expected)
 
@@ -576,60 +576,60 @@ public class SpanTest
         }
         It "Emits <Value.GetType().Name> value <Value>" -TestCases @(
             # bool
-            @{Value = $true; Expected = 'true'; Roundtrip = $true}
-            @{Value = $false; Expected = 'false'; Roundtrip = $false}
+            @{ Value = $true; Expected = 'true'; Roundtrip = $true }
+            @{ Value = $false; Expected = 'false'; Roundtrip = $false }
 
             # int
-            @{Value = 0; Expected = '0'; Roundtrip = 0}
-            @{Value = 1; Expected = '1'; Roundtrip = 1}
-            @{Value = -1; Expected = '-1'; Roundtrip = -1}
-            @{Value = [System.IO.FileShare]::Read; Expected = '1'; Roundtrip = 1}
-            @{Value = [byte]1; Expected = 1; Roundtrip = 1}
-            @{Value = [sbyte]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int16]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint16]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int32]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint32]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int64]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint64]1; Expected = 1; Roundtrip = 1}
-            @{Value = [System.Numerics.BigInteger]::new(1); Expected = 1; Roundtrip = 1}
+            @{ Value = 0; Expected = '0'; Roundtrip = 0 }
+            @{ Value = 1; Expected = '1'; Roundtrip = 1 }
+            @{ Value = -1; Expected = '-1'; Roundtrip = -1 }
+            @{ Value = [System.IO.FileShare]::Read; Expected = '1'; Roundtrip = 1 }
+            @{ Value = [byte]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [sbyte]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int16]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint16]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int32]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint32]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int64]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint64]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [System.Numerics.BigInteger]::new(1); Expected = 1; Roundtrip = 1 }
 
             # float
-            @{Value = [float]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [float]'1'; Expected = '1.0e+0'; Roundtrip = [double]'1'}
-            @{Value = [float]'1.0'; Expected = '1.0e+0'; Roundtrip = [double]'1'}
-            @{Value = [float]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e+20'}
-            @{Value = [float]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e+20'}
-            @{Value = [float]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [float]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
-            @{Value = [float]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity}
-            @{Value = [float]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity}
-            @{Value = [float]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN}
-            @{Value = [double]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20'}
-            @{Value = [double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20'}
-            @{Value = [double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
-            @{Value = [double]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity}
-            @{Value = [double]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity}
-            @{Value = [double]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN}
-            @{Value = [decimal]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [decimal][double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20'}
-            @{Value = [decimal][double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20'}
-            @{Value = [decimal][double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [decimal][double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
+            @{ Value = [float]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [float]'1'; Expected = '1.0e+0'; Roundtrip = [double]'1' }
+            @{ Value = [float]'1.0'; Expected = '1.0e+0'; Roundtrip = [double]'1' }
+            @{ Value = [float]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e+20' }
+            @{ Value = [float]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e+20' }
+            @{ Value = [float]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [float]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
+            @{ Value = [float]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity }
+            @{ Value = [float]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity }
+            @{ Value = [float]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN }
+            @{ Value = [double]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20' }
+            @{ Value = [double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20' }
+            @{ Value = [double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
+            @{ Value = [double]::PositiveInfinity; Expected = '.inf'; Roundtrip = [double]::PositiveInfinity }
+            @{ Value = [double]::NegativeInfinity; Expected = '-.inf'; Roundtrip = [double]::NegativeInfinity }
+            @{ Value = [double]::NaN; Expected = '.nan'; Roundtrip = [double]::NaN }
+            @{ Value = [decimal]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [decimal][double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20' }
+            @{ Value = [decimal][double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20' }
+            @{ Value = [decimal][double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [decimal][double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
 
             # str
-            @{Value = 'abc'; Expected = 'abc'; Roundtrip = 'abc'}
-            @{Value = '1'; Expected = '"1"'; Roundtrip = '1'}
-            @{Value = '0x1'; Expected = '"0x1"'; Roundtrip = '0x1'}
-            @{Value = '""'; Expected = '''""'''; Roundtrip = '""'}
-            @{Value = "''"; Expected = '"''''"'; Roundtrip = "''"}
-            @{Value = 'yes'; Expected = 'yes'; Roundtrip = 'yes'}
-            @{Value = 'true'; Expected = '"true"'; Roundtrip = 'true'}
-            @{Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
-            @{Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''; Roundtrip = '"\U0001F4A9"'}
-            @{Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"; Roundtrip = '\U0001F4A9'}
+            @{ Value = 'abc'; Expected = 'abc'; Roundtrip = 'abc' }
+            @{ Value = '1'; Expected = '"1"'; Roundtrip = '1' }
+            @{ Value = '0x1'; Expected = '"0x1"'; Roundtrip = '0x1' }
+            @{ Value = '""'; Expected = '''""'''; Roundtrip = '""' }
+            @{ Value = "''"; Expected = '"''''"'; Roundtrip = "''" }
+            @{ Value = 'yes'; Expected = 'yes'; Roundtrip = 'yes' }
+            @{ Value = 'true'; Expected = '"true"'; Roundtrip = 'true' }
+            @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))" }
+            @{ Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''; Roundtrip = '"\U0001F4A9"' }
+            @{ Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"; Roundtrip = '\U0001F4A9' }
 
             # misc
             @{
@@ -684,7 +684,7 @@ public class SpanTest
         }
 
         It "Emits dict" {
-            $actual = ConvertTo-Yaml -InputObject @{foo = 'bar'}
+            $actual = ConvertTo-Yaml -InputObject @{ foo = 'bar' }
             $actual | Should -Be 'foo: bar'
         }
 
@@ -694,12 +694,12 @@ public class SpanTest
         }
 
         It "Emits bool with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = 'true'}
-            @{Style = "Plain"; Expected = 'true'}
-            @{Style = "SingleQuoted"; Expected = "!!bool 'true'"}
-            @{Style = "DoubleQuoted"; Expected = '!!bool "true"'}
-            @{Style = "Literal"; Expected = "!!bool |-$n  true"}
-            @{Style = "Folded"; Expected = "!!bool >-$n  true"}
+            @{ Style = "Any"; Expected = 'true' }
+            @{ Style = "Plain"; Expected = 'true' }
+            @{ Style = "SingleQuoted"; Expected = "!!bool 'true'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!bool "true"' }
+            @{ Style = "Literal"; Expected = "!!bool |-$n  true" }
+            @{ Style = "Folded"; Expected = "!!bool >-$n  true" }
         ) {
             param ($Style, $Expected)
 
@@ -714,12 +714,12 @@ public class SpanTest
         }
 
         It "Emits enum with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1'}
-            @{Style = "Plain"; Expected = '1'}
-            @{Style = "SingleQuoted"; Expected = "!!int '1'"}
-            @{Style = "DoubleQuoted"; Expected = '!!int "1"'}
-            @{Style = "Literal"; Expected = "!!int |-$n  1"}
-            @{Style = "Folded"; Expected = "!!int >-$n  1"}
+            @{ Style = "Any"; Expected = '1' }
+            @{ Style = "Plain"; Expected = '1' }
+            @{ Style = "SingleQuoted"; Expected = "!!int '1'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!int "1"' }
+            @{ Style = "Literal"; Expected = "!!int |-$n  1" }
+            @{ Style = "Folded"; Expected = "!!int >-$n  1" }
         ) {
             param ($Style, $Expected)
 
@@ -734,12 +734,12 @@ public class SpanTest
         }
 
         It "Emits int with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1'}
-            @{Style = "Plain"; Expected = '1'}
-            @{Style = "SingleQuoted"; Expected = "!!int '1'"}
-            @{Style = "DoubleQuoted"; Expected = '!!int "1"'}
-            @{Style = "Literal"; Expected = "!!int |-$n  1"}
-            @{Style = "Folded"; Expected = "!!int >-$n  1"}
+            @{ Style = "Any"; Expected = '1' }
+            @{ Style = "Plain"; Expected = '1' }
+            @{ Style = "SingleQuoted"; Expected = "!!int '1'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!int "1"' }
+            @{ Style = "Literal"; Expected = "!!int |-$n  1" }
+            @{ Style = "Folded"; Expected = "!!int >-$n  1" }
         ) {
             param ($Style, $Expected)
 
@@ -754,12 +754,12 @@ public class SpanTest
         }
 
         It "Emits float with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1.1e+0'}
-            @{Style = "Plain"; Expected = '1.1e+0'}
-            @{Style = "SingleQuoted"; Expected = "!!float '1.1e+0'"}
-            @{Style = "DoubleQuoted"; Expected = '!!float "1.1e+0"'}
-            @{Style = "Literal"; Expected = "!!float |-$n  1.1e+0"}
-            @{Style = "Folded"; Expected = "!!float >-$n  1.1e+0"}
+            @{ Style = "Any"; Expected = '1.1e+0' }
+            @{ Style = "Plain"; Expected = '1.1e+0' }
+            @{ Style = "SingleQuoted"; Expected = "!!float '1.1e+0'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!float "1.1e+0"' }
+            @{ Style = "Literal"; Expected = "!!float |-$n  1.1e+0" }
+            @{ Style = "Folded"; Expected = "!!float >-$n  1.1e+0" }
         ) {
             param ($Style, $Expected)
 
@@ -774,12 +774,12 @@ public class SpanTest
         }
 
         It "Emits string with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = 'abc'}
-            @{Style = "Plain"; Expected = "abc"}
-            @{Style = "SingleQuoted"; Expected = "'abc'"}
-            @{Style = "DoubleQuoted"; Expected = '"abc"'}
-            @{Style = "Literal"; Expected = "|-$n  abc"}
-            @{Style = "Folded"; Expected = ">-$n  abc"}
+            @{ Style = "Any"; Expected = 'abc' }
+            @{ Style = "Plain"; Expected = "abc" }
+            @{ Style = "SingleQuoted"; Expected = "'abc'" }
+            @{ Style = "DoubleQuoted"; Expected = '"abc"' }
+            @{ Style = "Literal"; Expected = "|-$n  abc" }
+            @{ Style = "Folded"; Expected = ">-$n  abc" }
         ) {
             param ($Style, $Expected)
 
@@ -810,60 +810,60 @@ public class SpanTest
         }
         It "Emits <Value.GetType().Name> value <Value>" -TestCases @(
             # bool
-            @{Value = $true; Expected = 'true'; Roundtrip = $true}
-            @{Value = $false; Expected = 'false'; Roundtrip = $false}
+            @{ Value = $true; Expected = 'true'; Roundtrip = $true }
+            @{ Value = $false; Expected = 'false'; Roundtrip = $false }
 
             # int
-            @{Value = 0; Expected = '0'; Roundtrip = 0}
-            @{Value = 1; Expected = '1'; Roundtrip = 1}
-            @{Value = -1; Expected = '-1'; Roundtrip = -1}
-            @{Value = [System.IO.FileShare]::Read; Expected = '1'; Roundtrip = 1}
-            @{Value = [byte]1; Expected = 1; Roundtrip = 1}
-            @{Value = [sbyte]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int16]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint16]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int32]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint32]1; Expected = 1; Roundtrip = 1}
-            @{Value = [int64]1; Expected = 1; Roundtrip = 1}
-            @{Value = [uint64]1; Expected = 1; Roundtrip = 1}
-            @{Value = [System.Numerics.BigInteger]::new(1); Expected = 1; Roundtrip = 1}
+            @{ Value = 0; Expected = '0'; Roundtrip = 0 }
+            @{ Value = 1; Expected = '1'; Roundtrip = 1 }
+            @{ Value = -1; Expected = '-1'; Roundtrip = -1 }
+            @{ Value = [System.IO.FileShare]::Read; Expected = '1'; Roundtrip = 1 }
+            @{ Value = [byte]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [sbyte]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int16]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint16]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int32]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint32]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [int64]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [uint64]1; Expected = 1; Roundtrip = 1 }
+            @{ Value = [System.Numerics.BigInteger]::new(1); Expected = 1; Roundtrip = 1 }
 
             # float
-            @{Value = [float]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [float]'1'; Expected = '1.0e+0'; Roundtrip = [double]'1'}
-            @{Value = [float]'1.0'; Expected = '1.0e+0'; Roundtrip = [double]'1'}
-            @{Value = [float]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e+20'}
-            @{Value = [float]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e+20'}
-            @{Value = [float]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [float]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
-            @{Value = [float]::PositiveInfinity; Expected = '!!float .inf'; Roundtrip = [double]::PositiveInfinity}
-            @{Value = [float]::NegativeInfinity; Expected = '!!float -.inf'; Roundtrip = [double]::NegativeInfinity}
-            @{Value = [float]::NaN; Expected = '!!float .nan'; Roundtrip = [double]::NaN}
-            @{Value = [double]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20'}
-            @{Value = [double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20'}
-            @{Value = [double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
-            @{Value = [double]::PositiveInfinity; Expected = '!!float .inf'; Roundtrip = [double]::PositiveInfinity}
-            @{Value = [double]::NegativeInfinity; Expected = '!!float -.inf'; Roundtrip = [double]::NegativeInfinity}
-            @{Value = [double]::NaN; Expected = '!!float .nan'; Roundtrip = [double]::NaN}
-            @{Value = [decimal]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0'}
-            @{Value = [decimal][double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20'}
-            @{Value = [decimal][double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20'}
-            @{Value = [decimal][double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20'}
-            @{Value = [decimal][double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20'}
+            @{ Value = [float]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [float]'1'; Expected = '1.0e+0'; Roundtrip = [double]'1' }
+            @{ Value = [float]'1.0'; Expected = '1.0e+0'; Roundtrip = [double]'1' }
+            @{ Value = [float]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e+20' }
+            @{ Value = [float]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e+20' }
+            @{ Value = [float]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [float]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
+            @{ Value = [float]::PositiveInfinity; Expected = '!!float .inf'; Roundtrip = [double]::PositiveInfinity }
+            @{ Value = [float]::NegativeInfinity; Expected = '!!float -.inf'; Roundtrip = [double]::NegativeInfinity }
+            @{ Value = [float]::NaN; Expected = '!!float .nan'; Roundtrip = [double]::NaN }
+            @{ Value = [double]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20' }
+            @{ Value = [double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20' }
+            @{ Value = [double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
+            @{ Value = [double]::PositiveInfinity; Expected = '!!float .inf'; Roundtrip = [double]::PositiveInfinity }
+            @{ Value = [double]::NegativeInfinity; Expected = '!!float -.inf'; Roundtrip = [double]::NegativeInfinity }
+            @{ Value = [double]::NaN; Expected = '!!float .nan'; Roundtrip = [double]::NaN }
+            @{ Value = [decimal]'0'; Expected = '0.0e+0'; Roundtrip = [double]'0' }
+            @{ Value = [decimal][double]'1.1E+20'; Expected = '1.1e+20'; Roundtrip = [double]'1.1e20' }
+            @{ Value = [decimal][double]'-1.1E+20'; Expected = '-1.1e+20'; Roundtrip = [double]'-1.1e20' }
+            @{ Value = [decimal][double]'1.1E-20'; Expected = '1.1e-20'; Roundtrip = [double]'1.1e-20' }
+            @{ Value = [decimal][double]'-1.1E-20'; Expected = '-1.1e-20'; Roundtrip = [double]'-1.1e-20' }
 
             # str
-            @{Value = 'abc'; Expected = '"abc"'; Roundtrip = 'abc'}
-            @{Value = '1'; Expected = '"1"'; Roundtrip = '1'}
-            @{Value = '0x1'; Expected = '"0x1"'; Roundtrip = '0x1'}
-            @{Value = '""'; Expected = '"\"\""'; Roundtrip = '""'}
-            @{Value = "''"; Expected = '"''''"'; Roundtrip = "''"}
-            @{Value = 'yes'; Expected = '"yes"'; Roundtrip = 'yes'}
-            @{Value = 'true'; Expected = '"true"'; Roundtrip = 'true'}
-            @{Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))"}
-            @{Value = '"\U0001F4A9"'; Expected = '"\"\\U0001F4A9\""'; Roundtrip = '"\U0001F4A9"'}
-            @{Value = '\U0001F4A9'; Expected = '"\\U0001F4A9"'; Roundtrip = '\U0001F4A9'}
+            @{ Value = 'abc'; Expected = '"abc"'; Roundtrip = 'abc' }
+            @{ Value = '1'; Expected = '"1"'; Roundtrip = '1' }
+            @{ Value = '0x1'; Expected = '"0x1"'; Roundtrip = '0x1' }
+            @{ Value = '""'; Expected = '"\"\""'; Roundtrip = '""' }
+            @{ Value = "''"; Expected = '"''''"'; Roundtrip = "''" }
+            @{ Value = 'yes'; Expected = '"yes"'; Roundtrip = 'yes' }
+            @{ Value = 'true'; Expected = '"true"'; Roundtrip = 'true' }
+            @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))" }
+            @{ Value = '"\U0001F4A9"'; Expected = '"\"\\U0001F4A9\""'; Roundtrip = '"\U0001F4A9"' }
+            @{ Value = '\U0001F4A9'; Expected = '"\\U0001F4A9"'; Roundtrip = '\U0001F4A9' }
 
             # misc
             @{
@@ -918,7 +918,7 @@ public class SpanTest
         }
 
         It "Emits dict" {
-            $actual = ConvertTo-Yaml -InputObject @{foo = 'bar'} -Schema Yaml12JSON
+            $actual = ConvertTo-Yaml -InputObject @{ foo = 'bar' } -Schema Yaml12JSON
             $actual | Should -Be '{"foo": "bar"}'
         }
 
@@ -928,12 +928,12 @@ public class SpanTest
         }
 
         It "Emits bool with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = 'true'}
-            @{Style = "Plain"; Expected = 'true'}
-            @{Style = "SingleQuoted"; Expected = "!!bool 'true'"}
-            @{Style = "DoubleQuoted"; Expected = '!!bool "true"'}
-            @{Style = "Literal"; Expected = "!!bool |-$n  true"}
-            @{Style = "Folded"; Expected = "!!bool >-$n  true"}
+            @{ Style = "Any"; Expected = 'true' }
+            @{ Style = "Plain"; Expected = 'true' }
+            @{ Style = "SingleQuoted"; Expected = "!!bool 'true'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!bool "true"' }
+            @{ Style = "Literal"; Expected = "!!bool |-$n  true" }
+            @{ Style = "Folded"; Expected = "!!bool >-$n  true" }
         ) {
             param ($Style, $Expected)
 
@@ -948,12 +948,12 @@ public class SpanTest
         }
 
         It "Emits enum with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1'}
-            @{Style = "Plain"; Expected = '1'}
-            @{Style = "SingleQuoted"; Expected = "!!int '1'"}
-            @{Style = "DoubleQuoted"; Expected = '!!int "1"'}
-            @{Style = "Literal"; Expected = "!!int |-$n  1"}
-            @{Style = "Folded"; Expected = "!!int >-$n  1"}
+            @{ Style = "Any"; Expected = '1' }
+            @{ Style = "Plain"; Expected = '1' }
+            @{ Style = "SingleQuoted"; Expected = "!!int '1'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!int "1"' }
+            @{ Style = "Literal"; Expected = "!!int |-$n  1" }
+            @{ Style = "Folded"; Expected = "!!int >-$n  1" }
         ) {
             param ($Style, $Expected)
 
@@ -968,12 +968,12 @@ public class SpanTest
         }
 
         It "Emits int with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1'}
-            @{Style = "Plain"; Expected = '1'}
-            @{Style = "SingleQuoted"; Expected = "!!int '1'"}
-            @{Style = "DoubleQuoted"; Expected = '!!int "1"'}
-            @{Style = "Literal"; Expected = "!!int |-$n  1"}
-            @{Style = "Folded"; Expected = "!!int >-$n  1"}
+            @{ Style = "Any"; Expected = '1' }
+            @{ Style = "Plain"; Expected = '1' }
+            @{ Style = "SingleQuoted"; Expected = "!!int '1'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!int "1"' }
+            @{ Style = "Literal"; Expected = "!!int |-$n  1" }
+            @{ Style = "Folded"; Expected = "!!int >-$n  1" }
         ) {
             param ($Style, $Expected)
 
@@ -988,12 +988,12 @@ public class SpanTest
         }
 
         It "Emits float with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '1.1e+0'}
-            @{Style = "Plain"; Expected = '1.1e+0'}
-            @{Style = "SingleQuoted"; Expected = "!!float '1.1e+0'"}
-            @{Style = "DoubleQuoted"; Expected = '!!float "1.1e+0"'}
-            @{Style = "Literal"; Expected = "!!float |-$n  1.1e+0"}
-            @{Style = "Folded"; Expected = "!!float >-$n  1.1e+0"}
+            @{ Style = "Any"; Expected = '1.1e+0' }
+            @{ Style = "Plain"; Expected = '1.1e+0' }
+            @{ Style = "SingleQuoted"; Expected = "!!float '1.1e+0'" }
+            @{ Style = "DoubleQuoted"; Expected = '!!float "1.1e+0"' }
+            @{ Style = "Literal"; Expected = "!!float |-$n  1.1e+0" }
+            @{ Style = "Folded"; Expected = "!!float >-$n  1.1e+0" }
         ) {
             param ($Style, $Expected)
 
@@ -1008,12 +1008,12 @@ public class SpanTest
         }
 
         It "Emits string with custom style <Style>" -TestCases @(
-            @{Style = "Any"; Expected = '"abc"'}
-            @{Style = "Plain"; Expected = "!!str abc"}
-            @{Style = "SingleQuoted"; Expected = "'abc'"}
-            @{Style = "DoubleQuoted"; Expected = '"abc"'}
-            @{Style = "Literal"; Expected = "|-$n  abc"}
-            @{Style = "Folded"; Expected = ">-$n  abc"}
+            @{ Style = "Any"; Expected = '"abc"' }
+            @{ Style = "Plain"; Expected = "!!str abc" }
+            @{ Style = "SingleQuoted"; Expected = "'abc'" }
+            @{ Style = "DoubleQuoted"; Expected = '"abc"' }
+            @{ Style = "Literal"; Expected = "|-$n  abc" }
+            @{ Style = "Folded"; Expected = ">-$n  abc" }
         ) {
             param ($Style, $Expected)
 
@@ -1078,7 +1078,7 @@ public class SpanTest
                 }
             }
 
-            $actual = ConvertTo-Yaml @{foo = [type]} -Schema $schema
+            $actual = ConvertTo-Yaml @{ foo = [type] } -Schema $schema
             $actual | Should -Be 'foo: type'
         }
 
@@ -1094,7 +1094,7 @@ public class SpanTest
                 }
             }
 
-            $actual = ConvertTo-Yaml ([Ordered]@{foo = 'bar'}) -Schema $schema
+            $actual = ConvertTo-Yaml ([Ordered]@{ foo = 'bar' }) -Schema $schema
             $actual | Should -Be '{foo: bar, test: other}'
         }
 
@@ -1115,6 +1115,131 @@ public class SpanTest
 
             $actual = ConvertTo-Yaml @(1, 2) -Schema $schema
             $actual | Should -Be '[1, 2, end]'
+        }
+
+        It "Emits with custom transformer" {
+            class MyClass {
+                [string]$Value1
+                [string]$Value2
+            }
+            $value = [MyClass]@{
+                Value1 = 'foo'
+                Value2 = 'bar'
+            }
+
+            $schema = New-YamlSchema -EmitTransformer {
+                param($Value, $Schema)
+
+                if ($value -is [MyClass]) {
+                    [Ordered]@{
+                        Value2 = $Value.Value2 | Add-YamlFormat -ScalarStyle DoubleQuoted -PassThru
+                        Value1 = $Value.Value1 | Add-YamlFormat -ScalarStyle SingleQuoted -PassThru
+                    }
+                }
+                else {
+                    $Schema.EmitTransformer($Value)
+                }
+            }
+
+            $actual = ConvertTo-Yaml $value -Schema $schema
+            $actual | Should -Be "Value2: ""bar""$($n)Value1: 'foo'"
+
+        }
+
+        It "Emits with custom transformer - MapValue" {
+            class MyClass {
+                [string]$Value1
+                [string]$Value2
+            }
+            $value = [MyClass]@{
+                Value1 = 'foo'
+                Value2 = 'bar'
+            }
+
+            $schema = New-YamlSchema -EmitTransformer {
+                param($Value, $Schema)
+
+                if ($value -is [MyClass]) {
+                    [Yayaml.MapValue]@{
+                        Values = [Ordered]@{
+                            Value2 = $Value.Value2 | Add-YamlFormat -ScalarStyle DoubleQuoted -PassThru
+                            Value1 = $Value.Value1 | Add-YamlFormat -ScalarStyle SingleQuoted -PassThru
+                        }
+                        Style = 'Flow'
+                    }
+                }
+                else {
+                    $Schema.EmitTransformer($Value)
+                }
+            } -EmitMap {
+                throw "This should not happen"
+            }
+
+            $actual = ConvertTo-Yaml $value -Schema $schema
+            $actual | Should -Be "{Value2: ""bar"", Value1: 'foo'}"
+        }
+
+        It "Emits with custom transformer - ScalarValue" {
+            class MyClass {
+                [string]$Value1
+                [string]$Value2
+            }
+            $value = [MyClass]@{
+                Value1 = 'foo'
+                Value2 = 'bar'
+            }
+
+            $schema = New-YamlSchema -EmitTransformer {
+                param($Value, $Schema)
+
+                if ($value -is [MyClass]) {
+                    [Yayaml.ScalarValue]@{
+                        Value = "$($value.Value1) - $($value.Value2)"
+                        Style = 'DoubleQuoted'
+                    }
+                }
+                else {
+                    $Schema.EmitTransformer($Value)
+                }
+            } -EmitScalar {
+                throw "This should not happen"
+            }
+
+            $actual = ConvertTo-Yaml $value -Schema $schema
+            $actual | Should -Be '"foo - bar"'
+        }
+
+        It "Emits with custom transformer - SequenceValue" {
+            class MyClass {
+                [string]$Value1
+                [string]$Value2
+            }
+            $value = [MyClass]@{
+                Value1 = 'foo'
+                Value2 = 'bar'
+            }
+
+            $schema = New-YamlSchema -EmitTransformer {
+                param($Value, $Schema)
+
+                if ($value -is [MyClass]) {
+                    [Yayaml.SequenceValue]@{
+                        Values = @(
+                            $Value.Value1 | Add-YamlFormat -ScalarStyle SingleQuoted -PassThru
+                            $Value.Value2 | Add-YamlFormat -ScalarStyle DoubleQuoted -PassThru
+                        )
+                        Style = 'Flow'
+                    }
+                }
+                else {
+                    $Schema.EmitTransformer($Value)
+                }
+            } -EmitSequence {
+                throw "This should not happen"
+            }
+
+            $actual = ConvertTo-Yaml $value -Schema $schema
+            $actual | Should -Be "['foo', ""bar""]"
         }
     }
 }

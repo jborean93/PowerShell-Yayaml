@@ -6,6 +6,8 @@
 + Provide workaround when importing the module more than once
 + Add support for Windows PowerShell 5.1
   + There are no guarantees that YamlDotNet will be loadable in case of conflicts, use PowerShell 7 so an ALC can be used
++ Added `-EmitTransformer` to `New-YamlSchema` to provide a simpler way of transforming particular types or objects
+  + This runs the ScriptBlock provided for every object that is being serialized allowing the caller to provide a "transformed" value for that object
 
 ## v0.2.1 - 2023-10-13
 
