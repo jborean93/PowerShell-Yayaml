@@ -1,6 +1,6 @@
 # Changelog for Yayaml
 
-## v0.3.0 - TBD
+## v0.3.0 - 2023-11-29
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `13.7.1`
 + Provide workaround when importing the module more than once
