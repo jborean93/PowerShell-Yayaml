@@ -2,7 +2,7 @@
 
 ## v0.3.0 - 2023-11-29
 
-+ Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `13.7.1`
++ Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `15.1.2`
 + Provide workaround when importing the module more than once
 + Add support for Windows PowerShell 5.1
   + There are no guarantees that YamlDotNet will be loadable in case of conflicts, use PowerShell 7 so an ALC can be used
@@ -11,7 +11,7 @@
 
 ## v0.2.1 - 2023-10-13
 
-+ Support serializating dotnet properties that return a `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, or `ReadOnlyMemory<T>`
++ Support serializing dotnet properties that return a `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, or `ReadOnlyMemory<T>`
   + These values will be copied to a temporary array of the type `T`
 + Treat any `IList<byte>` type, not just `byte[]`, as `!!binary` with the `Yaml11` schema
 
