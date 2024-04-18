@@ -1,8 +1,12 @@
 # Changelog for Yayaml
 
-## v0.3.0 - 2023-11-29
+## v0.4.0 - 2023-04-19
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `15.1.2`
+
+## v0.3.0 - 2023-11-29
+
++ Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `13.7.1`
 + Provide workaround when importing the module more than once
 + Add support for Windows PowerShell 5.1
   + There are no guarantees that YamlDotNet will be loadable in case of conflicts, use PowerShell 7 so an ALC can be used
