@@ -180,6 +180,7 @@ Function Assert-PowerShell {
     $releaseArch = switch ($Arch) {
         X64 { 'x64' }
         X86 { 'x86' }
+        ARM64 { 'arm64' }
         default {
             $err = [ErrorRecord]::new(
                 [Exception]::new("Unsupported archecture requests '$_'"),
