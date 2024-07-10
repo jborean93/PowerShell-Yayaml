@@ -1,4 +1,4 @@
-#if CORE
+#if NET6_0_OR_GREATER
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;

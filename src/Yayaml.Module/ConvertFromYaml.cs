@@ -30,7 +30,7 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     public SwitchParameter NoEnumerate { get; set; }
 
     [Parameter]
-#if CORE
+#if NET6_0_OR_GREATER
     [YamlSchemaCompletions]
 #else
     [ArgumentCompleter(typeof(YamlSchemaCompletionsAttribute))]
@@ -102,9 +102,6 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     private static List<object?> ConvertFromYaml(string yaml,
         YamlSchema schema)
     {
-        DeserializerBuilder builder = new DeserializerBuilder();
-        IDeserializer deserializer = builder.Build();
-
         using StringReader reader = new(yaml);
         YamlDotNet.Core.Parser parser = new(reader);
         YamlStream yamlStream = new();
@@ -130,7 +127,6 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
     private static object? ConvertFromYamlNode(YamlNode node,
         YamlSchema schema) => node switch
         {
-            null => null,
             YamlMappingNode mapping => ConvertFromYamlMappingNode(mapping, schema),
             YamlSequenceNode sequence => ConvertFromYamlSequenceNode(sequence, schema),
             YamlScalarNode scalar => ConvertFromYamlScalarNode(scalar, schema),

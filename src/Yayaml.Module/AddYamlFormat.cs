@@ -24,11 +24,6 @@ public sealed class AddYamlFormatCommand : PSCmdlet
 
     protected override void ProcessRecord()
     {
-        if (InputObject is null)
-        {
-            return;
-        }
-
         YayamlFormat format = new(CollectionStyle, ScalarStyle);
         InputObject.Properties.Add(new PSNoteProperty(SchemaHelpers.YAYAML_FORMAT_ID, format));
 

@@ -400,7 +400,7 @@ $)
                 rawValue = rawValue.Substring(1);
             }
 
-            string[] integerSplit = rawValue.Split(new [] { '.' }, 2);
+            string[] integerSplit = rawValue.Split(new[] { '.' }, 2);
             BigInteger integer = SchemaHelpers.ParseIntSexagesimal(integerSplit[0]);
             if (isNegative)
             {
