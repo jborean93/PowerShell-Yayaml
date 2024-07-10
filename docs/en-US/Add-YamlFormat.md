@@ -14,7 +14,8 @@ Adds formatting info for use with `ConvertTo-Yaml` to an object.
 
 ```
 Add-YamlFormat [-InputObject] <PSObject> [-ScalarStyle <ScalarStyle>] [-CollectionStyle <CollectionStyle>]
- [-PassThru] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+ [-PassThru] [-Comment <String>] [-PreComment <String>] [-PostComment <String>]
+ [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -70,6 +71,26 @@ PS C:\> $obj | ConvertTo-Yaml
 Sets the dictionary like value to be emitted as a flow collection.
 Unlike the string type, `-PassThru` isn't needed for this to work although it can still be used if desired.
 
+### Example 3 - Add comments to the serialized YAML string
+```powershell
+PS C:\> $obj = [Ordered]@{
+    Key1 = 'value' | Add-YamlFormat -PreComment "Comment before key" -PassThru
+    Key2 = 'value' | Add-YamlFormat -Comment "Comment inline" -PassThru
+    Key3 = 'value' | Add-YamlFormat -PostComment "Comment after key" -PassThru
+    Key4 = 'value'
+}
+PS C:\> $obj | ConvertTo-Yaml
+# # Comment before key
+# Key1: value
+# Key2: value # Comment inline
+# Key3: value
+# # Comment after key
+# Key4: value
+```
+
+Adds comments to an object for serialization.
+See [about_YamlEmitting](./about_YamlEmitting.md) for more details around how comments are serialized and the rules around them.
+
 ## PARAMETERS
 
 ### -CollectionStyle
@@ -87,6 +108,23 @@ Type: CollectionStyle
 Parameter Sets: (All)
 Aliases:
 Accepted values: Any, Block, Flow
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Comment
+Serializes the input value with an inline comment.
+An inline comment is a comment placed at the end of the value.
+See [about_YamlEmitting](./about_YamlEmitting.md) for more information around comment serialization.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
 
 Required: False
 Position: Named
@@ -119,6 +157,38 @@ Strings especially can be problematic as they need to be implicitly wrapped as a
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PostComment
+Serializes the input value with a comment placed after the value on the newline.
+See [about_YamlEmitting](./about_YamlEmitting.md) for more information around comment serialization.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PreComment
+Serializes the input value with a comment placed before the value with the value on the next line after the comment.
+See [about_YamlEmitting](./about_YamlEmitting.md) for more information around comment serialization.
+
+```yaml
+Type: String
 Parameter Sets: (All)
 Aliases:
 

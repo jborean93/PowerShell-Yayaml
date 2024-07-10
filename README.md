@@ -13,8 +13,11 @@ While there are a few other YAML modules out on the gallery this module includes
 + Support for custom schemas
 + Finer control over scalar, map, and sequence styles
 + Loads `YamlDotNet` in an Assembly Load Context to avoid DLL hell and cross assembly conflicts (PowerShell 7+ only)
++ Support for emitting comments in `ConvertTo-Yaml` (does not support parsing comments though)
 
 There are schemas that support YAML 1.2 (default), 1.2 JSON, 1.1, and failsafe values.
+Please note that this module does not support roundtrip representation of the input YAML format.
+Support for this may be added in the future if there is demand for it.
 
 See [Yayaml index](docs/en-US/Yayaml.md) for more details.
 

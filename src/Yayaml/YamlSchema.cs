@@ -63,11 +63,22 @@ internal class YayamlFormat
 {
     public CollectionStyle CollectionStyle { get; }
     public ScalarStyle ScalarStyle { get; }
+    public string? Comment { get; }
+    public string? PreComment { get; }
+    public string? PostComment { get; }
 
-    public YayamlFormat(CollectionStyle collectionStyle, ScalarStyle scalarStyle)
+    public YayamlFormat(
+        CollectionStyle collectionStyle,
+        ScalarStyle scalarStyle,
+        string? comment,
+        string? preComment,
+        string? postComment)
     {
         CollectionStyle = collectionStyle;
         ScalarStyle = scalarStyle;
+        Comment = comment;
+        PreComment = preComment;
+        PostComment = postComment;
     }
 }
 
