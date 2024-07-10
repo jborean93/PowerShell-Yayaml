@@ -197,6 +197,13 @@ Describe "ConvertTo-Yaml" {
             $actual | Should -Be '{Foo: 1}'
         }
 
+        It "Emits null with custom format" {
+            $err = {
+                $null | Add-YamlFormat -ScalarStyle DoubleQuoted -ErrorAction Stop
+            } | Should -Throw -PassThru
+            [string]$err | Should -Be "Cannot bind argument to parameter 'InputObject' because it is null."
+        }
+
         It "Emits Memory" {
             $mem = [System.Memory[byte]]::new([byte[]]@(1, 2))
 
@@ -248,6 +255,52 @@ public class SpanTest
             # Ensure we don't cause a type conflict when generating the delegate method
             $actual2 = $obj | ConvertTo-Yaml
             $actual2 | Should -Be $actual
+        }
+
+        It "Emits object with property getter that throws" {
+            $obj = [PSCustomObject]@{}
+            $obj | Add-Member -MemberType ScriptProperty -Name Getter -Value { throw 'foo' }
+
+            $actual = $obj | ConvertTo-Yaml
+            $actual | Should -Be 'Getter: ''Exception getting "Getter": "foo"'''
+        }
+
+        It "Emits as -Stream single input" {
+            $actual = 1 | ConvertTo-Yaml -Stream
+            $actual | Should -Be '1'
+        }
+
+        It "Emits as -Stream single input -AsArray" {
+            $actual = 1 | ConvertTo-Yaml -Stream -AsArray
+            $actual | Should -Be '- 1'
+        }
+
+        It "Emits as -Stream multiple input" {
+            $actual = 1, 2 | ConvertTo-Yaml -Stream
+            $actual.Count | Should -Be 2
+            $actual[0] | Should -Be '1'
+            $actual[1] | Should -Be '2'
+        }
+
+        It "Emits as -Stream multiple input -AsArray" {
+            $actual = 1, 2 | ConvertTo-Yaml -Stream -AsArray
+            $actual.Count | Should -Be 2
+            $actual[0] | Should -Be '- 1'
+            $actual[1] | Should -Be '- 2'
+        }
+
+        It "Fails with invalid schema type value" {
+            $err = {
+                ConvertTo-Yaml foo -Schema 1
+            } | Should -PassThru
+            [string]$err | Should -BeLike "*Could not convert input '1' to schema object"
+        }
+
+        It "Fails with invalid schema string value" {
+            $err = {
+                ConvertTo-Yaml foo -Schema invalid
+            } | Should -PassThru
+            [string]$err | Should -BeLike "*Unknown schema type 'invalid'"
         }
     }
 
@@ -800,6 +853,11 @@ public class SpanTest
 
             $actual = ConvertTo-Yaml -InputObject $value
             $actual | Should -Be "Foo: bar$n""1"": test"
+        }
+
+        It "Emits with explicit schema value" {
+            $actual = ConvertTo-Yaml -InputObject foo -Schema Yaml12
+            $actual | Should -Be foo
         }
     }
 

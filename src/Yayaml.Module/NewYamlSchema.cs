@@ -31,7 +31,7 @@ public sealed class NewYamlSchemaCommand : PSCmdlet
     public SequenceParser? ParseSequence { get; set; }
 
     [Parameter]
-#if CORE
+#if NET6_0_OR_GREATER
     [YamlSchemaCompletions]
 #else
     [ArgumentCompleter(typeof(YamlSchemaCompletionsAttribute))]

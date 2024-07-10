@@ -2,12 +2,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
-using YamlDotNet.RepresentationModel;
+using YamlDotNet.Serialization.ObjectGraphVisitors;
+using YamlDotNet.Core;
 
 namespace Yayaml.Module;
 
@@ -15,9 +17,8 @@ namespace Yayaml.Module;
 [OutputType(typeof(string))]
 public sealed class ConvertToYamlCommand : PSCmdlet
 {
-    private List<YamlNode> _data = new();
-    private bool _emittedDepthWarning = false;
-    private YamlSchema? _schema = null;
+    private List<PSObject?> _data = new();
+    private ISerializer _serializer = default!; // Set in BeginProcessing
 
     [Parameter(
         Mandatory = true,
@@ -25,7 +26,7 @@ public sealed class ConvertToYamlCommand : PSCmdlet
         ValueFromPipeline = true,
         ValueFromPipelineByPropertyName = true
     )]
-    [AllowNull]
+    [System.Management.Automation.AllowNull]
     public PSObject? InputObject { get; set; } = null;
 
     [Parameter]
@@ -38,7 +39,7 @@ public sealed class ConvertToYamlCommand : PSCmdlet
     public SwitchParameter IndentSequence { get; set; }
 
     [Parameter]
-#if CORE
+#if NET6_0_OR_GREATER
     [YamlSchemaCompletions]
 #else
     [ArgumentCompleter(typeof(YamlSchemaCompletionsAttribute))]
@@ -46,39 +47,59 @@ public sealed class ConvertToYamlCommand : PSCmdlet
     [SchemaParameterTransformer]
     public YamlSchema? Schema { get; set; }
 
+    [Parameter]
+    public SwitchParameter Stream { get; set; }
+
     protected override void BeginProcessing()
     {
-        _schema = Schema ?? YamlSchema.CreateDefault();
+        SerializerBuilder builder = new SerializerBuilder()
+            // We disable the builtin type inspector and pre-processing visitor
+            // This is because our emission phase visitor will handle all the
+            // type conversions and processing.
+            .WithTypeInspector(inner => new YayamlNullTypeInspector())
+            .WithPreProcessingPhaseObjectGraphVisitor(new YayamlNullPreProcessingVisitor())
+            .WithEmissionPhaseObjectGraphVisitor(
+                args => new YayamlObjectGraphVisitor(
+                    args.InnerVisitor,
+                    this,
+                    Depth,
+                    Schema ?? YamlSchema.CreateDefault()), w => w.OnTop());
+        if (IndentSequence)
+        {
+            builder = builder.WithIndentedSequences();
+        }
+        _serializer = builder.Build();
     }
 
     protected override void ProcessRecord()
     {
-        YamlConverter converter = new(_schema ?? YamlSchema.CreateDefault());
-        _data.Add(converter.ConvertToYamlObject(InputObject, Depth));
-
-        if (converter.WasTruncated && !_emittedDepthWarning)
+        if (Stream)
         {
-            _emittedDepthWarning = true;
-            WriteWarning($"Resulting YAML is truncated as serialization has exceeded the set depth of {Depth}");
+            SerializeAndWrite(AsArray ? new[] { InputObject } : InputObject);
+        }
+        else
+        {
+            _data.Add(InputObject);
         }
     }
 
     protected override void EndProcessing()
     {
-        SerializerBuilder builder = new SerializerBuilder();
-        if (IndentSequence)
+        if (Stream)
         {
-            builder = builder.WithIndentedSequences();
+            return;
         }
-        ISerializer serializer = builder.Build();
-        object? toSerialize = _data.Count == 1 && !AsArray ? _data[0] : _data;
 
+        object? toSerialize = _data.Count == 1 && !AsArray ? _data[0] : _data;
+        SerializeAndWrite(toSerialize);
+    }
+
+    private void SerializeAndWrite(object? obj)
+    {
+        string res;
         try
         {
-            string res = serializer.Serialize(toSerialize);
-            // Remove the newline added to the end
-            res = res.Substring(0, res.Length - Environment.NewLine.Length);
-            WriteObject(res);
+            res = _serializer.Serialize(obj);
         }
         catch (Exception e)
         {
@@ -86,123 +107,95 @@ public sealed class ConvertToYamlCommand : PSCmdlet
                 e,
                 "InputObjectInvalid",
                 ErrorCategory.InvalidArgument,
-                toSerialize
+                obj
             ));
+            return;
         }
+
+        // Remove the newline added to the end
+        res = res.Substring(0, res.Length - Environment.NewLine.Length);
+        WriteObject(res);
     }
 }
 
-internal sealed class YamlConverter
+[ExcludeFromCodeCoverage]
+internal sealed class YayamlNullTypeInspector : ITypeInspector
 {
-    private YamlSchema _schema;
+    public IEnumerable<IPropertyDescriptor> GetProperties(Type type, object? container)
+        => Array.Empty<IPropertyDescriptor>();
 
-    public bool WasTruncated { get; set; }
+    public IPropertyDescriptor GetProperty(Type type, object? container, string name, bool ignoreUnmatched)
+        => null!;
+}
 
-    public YamlConverter(YamlSchema schema)
+[ExcludeFromCodeCoverage]
+internal sealed class YayamlNullPreProcessingVisitor : PreProcessingPhaseObjectGraphVisitorSkeleton
+{
+    public YayamlNullPreProcessingVisitor() : base(Array.Empty<IYamlTypeConverter>())
+    { }
+
+    protected override bool Enter(IObjectDescriptor value)
+        => false;
+
+    protected override bool EnterMapping(IObjectDescriptor key, IObjectDescriptor value)
+        => false;
+
+    protected override bool EnterMapping(IPropertyDescriptor key, IObjectDescriptor value)
+        => false;
+
+    protected override void VisitScalar(IObjectDescriptor scalar)
+    { }
+
+    protected override void VisitMappingStart(IObjectDescriptor mapping, Type keyType, Type valueType)
+    { }
+
+    protected override void VisitMappingEnd(IObjectDescriptor mapping)
+    { }
+
+    protected override void VisitSequenceStart(IObjectDescriptor sequence, Type elementType)
+    { }
+
+    protected override void VisitSequenceEnd(IObjectDescriptor sequence)
+    { }
+}
+
+internal sealed class YayamlObjectGraphVisitor : ChainedObjectGraphVisitor
+{
+    private readonly PSCmdlet _cmdlet;
+    private readonly int _depth;
+    private readonly YamlSchema _schema;
+    private bool _emittedDepthWarning = false;
+
+    public YayamlObjectGraphVisitor(
+        IObjectGraphVisitor<IEmitter> nextVisitor,
+        PSCmdlet cmdlet,
+        int depth,
+        YamlSchema schema) : base(nextVisitor)
     {
+        _cmdlet = cmdlet;
+        _depth = depth;
         _schema = schema;
     }
 
-    public YamlNode ConvertToYamlObject(PSObject? inputObject, int depth)
+    public override bool Enter(IObjectDescriptor value, IEmitter emitter)
     {
-        inputObject = _schema.EmitTransformer(inputObject);
-        if (inputObject == null)
-        {
-            ScalarValue nullValue = _schema.EmitScalar(null);
-            return GetScalarNode(nullValue);
-        }
-
-        YamlNode node;
-        if (inputObject.BaseObject is MapValue map)
-        {
-            node = ConvertToYamlMap(map, depth);
-        }
-        else if (inputObject.BaseObject is ScalarValue scalar)
-        {
-            node = GetScalarNode(scalar);
-        }
-        else if (inputObject.BaseObject is SequenceValue sequence)
-        {
-            node = ConvertToYamlSequence(sequence, depth);
-        }
-        else
-        {
-            node = ConvertToYamlNode(inputObject, depth);
-        }
-
-        YayamlFormat? formatProp = SchemaHelpers.GetYayamlFormatProperty(inputObject);
-        if (formatProp == null)
-        {
-            return node;
-        }
-
-        if (node is YamlMappingNode mapNode && formatProp.CollectionStyle != CollectionStyle.Any)
-        {
-            mapNode.Style = (MappingStyle)(int)formatProp.CollectionStyle;
-        }
-        else if (node is YamlSequenceNode seqNode && formatProp.CollectionStyle != CollectionStyle.Any)
-        {
-            seqNode.Style = (SequenceStyle)(int)formatProp.CollectionStyle;
-        }
-        else if (node is YamlScalarNode scalarNode && formatProp.ScalarStyle != ScalarStyle.Any)
-        {
-            scalarNode.Style = (YamlDotNet.Core.ScalarStyle)(int)formatProp.ScalarStyle;
-        }
-
-        return node;
+        EmitValue(SchemaHelpers.GetPSObject(value.Value), emitter, _depth);
+        return false;
     }
 
-    private YamlMappingNode ConvertToYamlMap(IDictionary dict, int depth)
-        => ConvertToYamlMap(_schema.EmitMap(dict), depth);
-
-    private YamlMappingNode ConvertToYamlMap(MapValue value, int depth)
+    private void EmitValue(PSObject? value, IEmitter emitter, int depth)
     {
-        YamlMappingNode node = new()
+        value = _schema.EmitTransformer(value);
+        YayamlFormat? formatProp = null;
+        if (value != null)
         {
-            Style = (MappingStyle)(int)value.Style,
-        };
-
-        foreach (DictionaryEntry entry in value.Values)
-        {
-            PSObject? entryKey = null;
-            if (entry.Key != NullKey.Value)
-            {
-                entryKey = SchemaHelpers.GetPSObject(entry.Key);
-            }
-            PSObject? entryValue = SchemaHelpers.GetPSObject(entry.Value);
-
-            node.Add(
-                ConvertToYamlObject(entryKey, depth),
-                ConvertToYamlObject(entryValue, depth)
-            );
+            formatProp = SchemaHelpers.GetYayamlFormatProperty(value);
         }
 
-        return node;
-    }
-
-    private YamlSequenceNode ConvertToYamlSequence(IList values, int depth)
-        => ConvertToYamlSequence(_schema.EmitSequence(values.Cast<object?>().ToArray()), depth);
-
-    private YamlSequenceNode ConvertToYamlSequence(SequenceValue value, int depth)
-    {
-        YamlSequenceNode node = new()
-        {
-            Style = (SequenceStyle)(int)value.Style,
-        };
-
-        foreach (object? v in value.Values)
-        {
-            node.Add(ConvertToYamlObject(SchemaHelpers.GetPSObject(v), depth));
-        }
-
-        return node;
-    }
-
-    private YamlNode ConvertToYamlNode(PSObject obj, int depth)
-    {
-        object baseObj = obj.BaseObject;
-
+        object baseObj = value?.BaseObject!;  // Null check is down below
+        PSObject psObj = value!;
         if (
+            baseObj is null ||
             baseObj is bool ||
             baseObj is char ||
             baseObj is DateTime ||
@@ -218,25 +211,29 @@ internal sealed class YamlConverter
             // won't be able to resurrect the PSObject of that type to access
             // any ETS props added to that object. Other types are unaffected
             // by this
-            ScalarValue toEmit = _schema.EmitScalar(baseObj is string ? obj : baseObj);
-            return GetScalarNode(toEmit);
+            baseObj = _schema.EmitScalar(baseObj is string ? value : baseObj);
+            psObj = SchemaHelpers.GetPSObject(baseObj);
         }
-
-        if (depth < 0)
+        else if (depth < 0)
         {
-            WasTruncated = true;
             string strValue = LanguagePrimitives.ConvertTo<string>(baseObj);
-            ScalarValue stringValue = _schema.EmitScalar(strValue);
-            return GetScalarNode(stringValue);
+            baseObj = _schema.EmitScalar(strValue);
+            psObj = SchemaHelpers.GetPSObject(baseObj);
+
+            if (!_emittedDepthWarning)
+            {
+                _cmdlet.WriteWarning($"Resulting YAML is truncated as serialization has exceeded the set depth of {_depth}");
+                _emittedDepthWarning = true;
+            }
         }
 
-        if (baseObj is IList list)
+        if (baseObj is ScalarValue scalar)
         {
-            return ConvertToYamlSequence(list, depth - 1);
+            EmitScalar(scalar, formatProp?.ScalarStyle, emitter);
         }
-        else if (baseObj is IDictionary dict)
+        else if (baseObj is IList list)
         {
-            return ConvertToYamlMap(dict, depth - 1);
+            EmitSequence(list, formatProp?.CollectionStyle, emitter, depth - 1);
         }
         else if (
             IsGenericType(baseObj.GetType(), typeof(Memory<>)) ||
@@ -246,73 +243,131 @@ internal sealed class YamlConverter
             MethodInfo toArrayMeth = baseObj.GetType().GetMethod(
                 "ToArray",
                 BindingFlags.Public | BindingFlags.Instance)!;
-
-            return ConvertToYamlSequence(
+            EmitSequence(
                 (Array)toArrayMeth.Invoke(baseObj, Array.Empty<object>())!,
+                formatProp?.CollectionStyle,
+                emitter,
                 depth - 1);
         }
-
-        // Treat any other type as a map and process accordingly.
-        OrderedDictionary model = new();
-        foreach (PSPropertyInfo prop in obj.Properties)
+        else if (baseObj is SequenceValue sequence)
         {
-            // Do not serialize our custom format note property.
-            if (prop is PSNoteProperty && prop.Name == SchemaHelpers.YAYAML_FORMAT_ID)
-            {
-                continue;
-            }
-
-            object? propValue = null;
-            try
-            {
-                propValue = prop.Value;
-            }
-            catch (GetValueInvocationException e)
-            {
-                propValue = e.Message;
-            }
-            catch (GetValueException)
-            {
-                // PowerShell fails to get ByRef struct values. We can do a bit
-                // more to convert Span<T> types to an array.
-                PropertyInfo? propTypeInfo = baseObj.GetType().GetProperty(prop.Name);
-                if (propTypeInfo == null)
-                {
-                    throw;
-                }
-
-                Type propType = propTypeInfo.PropertyType;
-                if (
-                    IsGenericType(propType, typeof(Span<>)) ||
-                    IsGenericType(propType, typeof(ReadOnlySpan<>))
-                )
-                {
-                    propValue = ReflectionHelper.SpanToArray(baseObj, propTypeInfo);
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            model[prop.Name] = propValue;
+            EmitSequence(sequence, formatProp?.CollectionStyle, emitter, depth - 1);
         }
+        else if (baseObj is IDictionary dict)
+        {
+            EmitMap(dict, formatProp?.CollectionStyle, emitter, depth - 1);
+        }
+        else if (baseObj is MapValue map)
+        {
+            EmitMap(map, formatProp?.CollectionStyle, emitter, depth - 1);
+        }
+        else
+        {
+            // Treat any other type as a map and process accordingly.
+            OrderedDictionary model = new();
+            foreach (PSPropertyInfo prop in psObj.Properties)
+            {
+                // Do not serialize our custom format note property.
+                if (prop is PSNoteProperty && prop.Name == SchemaHelpers.YAYAML_FORMAT_ID)
+                {
+                    continue;
+                }
 
-        return ConvertToYamlMap(model, depth - 1);
+                object? propValue = null;
+                try
+                {
+                    propValue = prop.Value;
+                }
+                catch (GetValueInvocationException e)
+                {
+                    propValue = e.Message;
+                }
+                catch (GetValueException)
+                {
+                    // PowerShell fails to get ByRef struct values. We can do a bit
+                    // more to convert Span<T> types to an array.
+                    PropertyInfo? propTypeInfo = baseObj.GetType().GetProperty(prop.Name);
+                    Type? propType = propTypeInfo?.PropertyType;
+                    if (
+                        propType is not null &&
+                        (IsGenericType(propType, typeof(Span<>)) ||
+                        IsGenericType(propType, typeof(ReadOnlySpan<>)))
+                    )
+                    {
+                        propValue = ReflectionHelper.SpanToArray(baseObj, propTypeInfo!);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                model[prop.Name] = propValue;
+            }
+
+            EmitMap(model, formatProp?.CollectionStyle, emitter, depth - 1);
+        }
     }
 
-    private YamlScalarNode GetScalarNode(ScalarValue value)
+    private void EmitScalar(ScalarValue value, ScalarStyle? style, IEmitter emitter)
     {
-        YamlScalarNode node = new(value.Value)
+        YamlDotNet.Core.ScalarStyle finalStyle = (YamlDotNet.Core.ScalarStyle)(int)value.Style;
+        if (style is not null && style != ScalarStyle.Any)
         {
-            Style = (YamlDotNet.Core.ScalarStyle)(int)value.Style,
-        };
-        if (!string.IsNullOrWhiteSpace(value.Tag))
-        {
-            node.Tag = new(value.Tag!);
+            finalStyle = (YamlDotNet.Core.ScalarStyle)(int)style;
         }
 
-        return node;
+        Scalar toEmit = new(
+            AnchorName.Empty,
+            value.Tag,
+            value.Value,
+            finalStyle,
+            string.IsNullOrWhiteSpace(value.Tag),
+            false);
+        emitter.Emit(toEmit);
+    }
+
+    private void EmitMap(IDictionary value, CollectionStyle? style, IEmitter emitter, int depth)
+        => EmitMap(_schema.EmitMap(value), style, emitter, depth);
+
+    private void EmitMap(MapValue value, CollectionStyle? style, IEmitter emitter, int depth)
+    {
+        MappingStyle finalStyle = (MappingStyle)(int)value.Style;
+        if (style is not null && style != CollectionStyle.Any)
+        {
+            finalStyle = (MappingStyle)(int)style;
+        }
+        emitter.Emit(new MappingStart(AnchorName.Empty, TagName.Empty, true, finalStyle));
+        foreach (DictionaryEntry entry in value.Values)
+        {
+            PSObject? entryKey = null;
+            if (entry.Key != NullKey.Value)
+            {
+                entryKey = SchemaHelpers.GetPSObject(entry.Key);
+            }
+            EmitValue(entryKey, emitter, depth);
+            EmitValue(SchemaHelpers.GetPSObject(entry.Value), emitter, depth);
+        }
+        emitter.Emit(new MappingEnd());
+    }
+
+    private void EmitSequence(IList values, CollectionStyle? style, IEmitter emitter, int depth)
+        => EmitSequence(_schema.EmitSequence(values.Cast<object?>().ToArray()), style, emitter, depth);
+
+    private void EmitSequence(SequenceValue value, CollectionStyle? style, IEmitter emitter, int depth)
+    {
+        SequenceStyle finalStyle = (SequenceStyle)(int)value.Style;
+        if (style is not null && style != CollectionStyle.Any)
+        {
+            finalStyle = (SequenceStyle)(int)style;
+        }
+
+        emitter.Emit(new SequenceStart(AnchorName.Empty, TagName.Empty, true, finalStyle));
+        foreach (object? v in value.Values)
+        {
+            EmitValue(SchemaHelpers.GetPSObject(v), emitter, depth);
+        }
+        emitter.Emit(new SequenceEnd());
     }
 
     private static bool IsGenericType(Type objType, Type genericType)

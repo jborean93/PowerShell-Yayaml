@@ -18,6 +18,7 @@
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "integratedTerminal",
+            "justMyCode": false
         },
         {
             "name": "PowerShell Launch Current File",

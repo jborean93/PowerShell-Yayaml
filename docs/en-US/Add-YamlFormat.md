@@ -14,7 +14,7 @@ Adds formatting info for use with `ConvertTo-Yaml` to an object.
 
 ```
 Add-YamlFormat [-InputObject] <PSObject> [-ScalarStyle <ScalarStyle>] [-CollectionStyle <CollectionStyle>]
- [-PassThru] [<CommonParameters>]
+ [-PassThru] [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -121,6 +121,21 @@ Strings especially can be problematic as they need to be implicitly wrapped as a
 Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProgressAction
+New common parameter introduced in PowerShell 7.4.
+
+```yaml
+Type: ActionPreference
+Parameter Sets: (All)
+Aliases: proga
 
 Required: False
 Position: Named

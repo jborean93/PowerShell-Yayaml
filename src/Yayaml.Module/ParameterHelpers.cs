@@ -5,7 +5,7 @@ using System.Management.Automation.Language;
 
 namespace Yayaml.Module;
 
-#if CORE
+#if NET6_0_OR_GREATER
 public class YamlSchemaCompletionsAttribute : ArgumentCompletionsAttribute
 {
     public YamlSchemaCompletionsAttribute()
@@ -13,7 +13,8 @@ public class YamlSchemaCompletionsAttribute : ArgumentCompletionsAttribute
     { }
 }
 #else
-public class YamlSchemaCompletionsAttribute : IArgumentCompleter {
+public class YamlSchemaCompletionsAttribute : IArgumentCompleter
+{
     public IEnumerable<CompletionResult> CompleteArgument(
         string commandName,
         string parameterName,
