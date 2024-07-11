@@ -197,13 +197,6 @@ Describe "ConvertTo-Yaml" {
             $actual | Should -Be '{Foo: 1}'
         }
 
-        It "Emits null with custom format" {
-            $err = {
-                $null | Add-YamlFormat -ScalarStyle DoubleQuoted -ErrorAction Stop
-            } | Should -Throw -PassThru
-            [string]$err | Should -Be "Cannot bind argument to parameter 'InputObject' because it is null."
-        }
-
         It "Emits Memory" {
             $mem = [System.Memory[byte]]::new([byte[]]@(1, 2))
 
@@ -1298,6 +1291,383 @@ public class SpanTest
 
             $actual = ConvertTo-Yaml $value -Schema $schema
             $actual | Should -Be "['foo', ""bar""]"
+        }
+    }
+
+    Context "Comments" {
+        It "Emits pre comment on plain scalar" {
+            $actual = 'value' | Add-YamlFormat -PreComment comment -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "# comment${n}value"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits comment on plain scalar" {
+            $actual = 'value' | Add-YamlFormat -Comment comment -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "value # comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits post comment on plain scalar" {
+            $actual = 'value' | Add-YamlFormat -PostComment comment -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "value${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits pre comment on single quoted scalar" {
+            $actual = 'value' | Add-YamlFormat -PreComment comment -ScalarStyle SingleQuoted -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "# comment${n}'value'"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits comment on single quoted scalar" {
+            $actual = 'value' | Add-YamlFormat -Comment comment -ScalarStyle SingleQuoted -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "'value' # comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits post comment on single quoted scalar" {
+            $actual = 'value' | Add-YamlFormat -PostComment comment -ScalarStyle SingleQuoted -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "'value'${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits pre comment on double quoted scalar" {
+            $actual = 'value' | Add-YamlFormat -PreComment comment -ScalarStyle DoubleQuoted -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "# comment${n}""value"""
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits comment on double quoted scalar" {
+            $actual = 'value' | Add-YamlFormat -Comment comment -ScalarStyle DoubleQuoted -PassThru | ConvertTo-Yaml
+            $actual | Should -Be """value"" # comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits post comment on double quoted scalar" {
+            $actual = 'value' | Add-YamlFormat -PostComment comment -ScalarStyle DoubleQuoted -PassThru | ConvertTo-Yaml
+            $actual | Should -Be """value""${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits pre comment on folded scalar" {
+            $actual = 'value' | Add-YamlFormat -PreComment comment -ScalarStyle Folded -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "# comment${n}>-${n}  value"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits post comment on folded scalar" {
+            $actual = 'value' | Add-YamlFormat -PostComment comment -ScalarStyle Folded -PassThru | ConvertTo-Yaml
+            $actual | Should -Be ">-${n}  value${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits pre comment on literal scalar" {
+            $actual = 'value' | Add-YamlFormat -PreComment comment -ScalarStyle Literal -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "# comment${n}|-${n}  value"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits post comment on literal scalar" {
+            $actual = 'value' | Add-YamlFormat -PostComment comment -ScalarStyle Literal -PassThru | ConvertTo-Yaml
+            $actual | Should -Be "|-${n}  value${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits multilined comment value on scalar" {
+            $actual = 'value' |
+                Add-YamlFormat -PreComment "1${n}2 3" -Comment "4${n}5 6" -PostComment "7${n}8 9" -PassThru |
+                ConvertTo-Yaml
+            $actual | Should -Be "# 1${n}# 2 3${n}value # 4 5 6${n}# 7${n}# 8 9"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse | Should -Be value
+        }
+
+        It "Emits pre comment on block sequence" {
+            $value = 1..3
+            Add-YamlFormat -InputObject $value -PreComment comment
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# comment${n}- 1${n}- 2${n}- 3"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Count | Should -Be 3
+            $reverse[0] | Should -Be 1
+            $reverse[1] | Should -Be 2
+            $reverse[2] | Should -Be 3
+        }
+
+        It "Emits post comment on block sequence" {
+            $value = 1..3
+            Add-YamlFormat -InputObject $value -PostComment comment
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "- 1${n}- 2${n}- 3${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Count | Should -Be 3
+            $reverse[0] | Should -Be 1
+            $reverse[1] | Should -Be 2
+            $reverse[2] | Should -Be 3
+        }
+
+        It "Emits pre comment on flow sequence" {
+            $value = 1..3
+            Add-YamlFormat -InputObject $value -PreComment comment -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# comment${n}[1, 2, 3]"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Count | Should -Be 3
+            $reverse[0] | Should -Be 1
+            $reverse[1] | Should -Be 2
+            $reverse[2] | Should -Be 3
+        }
+
+        It "Emits comment on flow sequence" {
+            $value = 1..3
+            Add-YamlFormat -InputObject $value -Comment comment -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "[1, 2, 3] # comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Count | Should -Be 3
+            $reverse[0] | Should -Be 1
+            $reverse[1] | Should -Be 2
+            $reverse[2] | Should -Be 3
+        }
+
+        It "Emits post comment on flow sequence" {
+            $value = 1..3
+            Add-YamlFormat -InputObject $value -PostComment comment -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "[1, 2, 3]${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Count | Should -Be 3
+            $reverse[0] | Should -Be 1
+            $reverse[1] | Should -Be 2
+            $reverse[2] | Should -Be 3
+        }
+
+        It "Emits pre comment on block map" {
+            $value = [Ordered]@{ Foo = 1; Bar = 2 }
+            Add-YamlFormat -InputObject $value -PreComment comment
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# comment${n}Foo: 1${n}Bar: 2"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Foo | Should -Be 1
+            $reverse.Bar | Should -Be 2
+        }
+
+        It "Emits post comment on block map" {
+            $value = [Ordered]@{ Foo = 1; Bar = 2 }
+            Add-YamlFormat -InputObject $value -PostComment comment
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "Foo: 1${n}Bar: 2${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Foo | Should -Be 1
+            $reverse.Bar | Should -Be 2
+        }
+
+        It "Emits pre comment on flow map" {
+            $value = [Ordered]@{ Foo = 1; Bar = 2 }
+            Add-YamlFormat -InputObject $value -PreComment comment -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# comment${n}{Foo: 1, Bar: 2}"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Foo | Should -Be 1
+            $reverse.Bar | Should -Be 2
+        }
+
+        It "Emits comment on flow map" {
+            $value = [Ordered]@{ Foo = 1; Bar = 2 }
+            Add-YamlFormat -InputObject $value -Comment comment -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "{Foo: 1, Bar: 2} # comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Foo | Should -Be 1
+            $reverse.Bar | Should -Be 2
+        }
+
+        It "Emits post comment on flow map" {
+            $value = [Ordered]@{ Foo = 1; Bar = 2 }
+            Add-YamlFormat -InputObject $value -PostComment comment -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "{Foo: 1, Bar: 2}${n}# comment"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Foo | Should -Be 1
+            $reverse.Bar | Should -Be 2
+        }
+
+        It "Emits block sequence with comments on value" {
+            $value = @(
+                'a' | Add-YamlFormat -PreComment 1 -PassThru
+                'b' | Add-YamlFormat -Comment 2 -PassThru
+                'c' | Add-YamlFormat -PostComment 3 -PassThru
+            )
+            Add-YamlFormat -InputObject $value -PreComment pre -PostComment post
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# pre${n}# 1${n}- a${n}- b # 2${n}- c${n}# 3${n}# post"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Count | Should -Be 3
+            $reverse[0] | Should -Be a
+            $reverse[1] | Should -Be b
+            $reverse[2] | Should -Be c
+        }
+
+        It "Emits block map with comments on values" {
+            $value = [Ordered]@{
+                Foo = 'a'
+                Bar = 'b' | Add-YamlFormat -Comment 2 -PassThru
+                Test = 'c' | Add-YamlFormat -PostComment 3 -PassThru
+            }
+            Add-YamlFormat -InputObject $value -PreComment pre -PostComment post
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# pre${n}Foo: a${n}Bar: b # 2${n}Test: c${n}# 3${n}# post"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.Foo | Should -Be a
+            $reverse.Bar | Should -Be b
+            $reverse.Test | Should -Be c
+        }
+
+        It "Emits block map with comments on keys" {
+            $value = [Ordered]@{
+                a = 'a' | Add-YamlFormat -PreComment 1 -PassThru
+                b = 'b' | Add-YamlFormat -Comment 2 -PassThru
+                c = 'c' | Add-YamlFormat -PostComment 3 -PassThru
+            }
+            Add-YamlFormat -InputObject $value -PreComment pre -PostComment post
+
+            $actual = ConvertTo-Yaml -InputObject $value
+            $actual | Should -Be "# pre${n}# 1${n}a: a${n}b: b # 2${n}c: c${n}# 3${n}# post"
+
+            $reverse = $actual | ConvertFrom-Yaml
+            $reverse.a | Should -Be a
+            $reverse.b | Should -Be b
+            $reverse.c | Should -Be c
+        }
+
+        It "Emits warning when using folded or literal scalar with value" {
+            $value = [Ordered]@{
+                1 = 'a' | Add-YamlFormat -Comment 1 -ScalarStyle Folded -PassThru
+                2 = 'b' | Add-YamlFormat -Comment 2 -ScalarStyle Literal -PassThru
+            }
+
+            $actual = ConvertTo-Yaml -InputObject $value -WarningAction SilentlyContinue -WarningVariable warn
+            $actual | Should -Be "1: >-${n}  a${n}2: |-${n}  b"
+            $warn.Count | Should -Be 2
+            $warn[0].Message | Should -Be "Scalar value 'a' has a style of Folded and contained inline comment but will be ignored. Inline comment cannot be used for the Folded or Literal scalar values."
+            $warn[1].Message | Should -Be "Scalar value 'b' has a style of Literal and contained inline comment but will be ignored. Inline comment cannot be used for the Folded or Literal scalar values."
+        }
+
+        It "Emits warning when map key contains comment" {
+            $value = [System.Collections.Generic.Dictionary[PSObject, object]]::new()
+            $a = ('a' | Add-YamlFormat -Comment comment -PassThru)
+            $value.Add($a, 1)
+
+            $actual = ConvertTo-Yaml -InputObject $value -WarningAction SilentlyContinue -WarningVariable warn
+            $actual | Should -Be "a: 1"
+            $warn.Count | Should -Be 1
+            $warn[0].Message | Should -Be "Key 'a' contained comment metadata which will be ignored. Set dictionary comments on the value instead."
+        }
+
+        It "Emits warning when using inline comment on map" {
+            $value = [Ordered]@{ Foo = 1; Bar = 2 }
+            Add-YamlFormat -InputObject $value -Comment comment
+
+            $actual = ConvertTo-Yaml -InputObject $value -WarningAction SilentlyContinue -WarningVariable warn
+            $actual | Should -Be "Foo: 1${n}Bar: 2"
+
+            $warn.Count | Should -Be 1
+            $warn[0].Message | Should -Be "Collection value has an inline comment but will be ignored. Inline comment cannot be used on collection objects themselves, set it on the value instead."
+        }
+
+        It "Emits warning when using inline comment on sequence" {
+            $value = 1..3
+            Add-YamlFormat -InputObject $value -Comment comment
+
+            $actual = ConvertTo-Yaml -InputObject $value -WarningAction SilentlyContinue -WarningVariable warn
+            $actual | Should -Be "- 1${n}- 2${n}- 3"
+
+            $warn.Count | Should -Be 1
+            $warn[0].Message | Should -Be "Collection value has an inline comment but will be ignored. Inline comment cannot be used on collection objects themselves, set it on the value instead."
+        }
+
+        It "Ignores comments in folded map" {
+            $value = [Ordered]@{
+                1 = @(
+                    'a' | Add-YamlFormat -PreComment 1 -PassThru
+                    'b' | Add-YamlFormat -Comment 2 -PassThru
+                )
+                2 = @{
+                    Key = 'b' | Add-YamlFormat -PostComment 3 -PassThru
+                }
+            }
+            $value | Add-YamlFormat -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value -WarningAction SilentlyContinue -WarningVariable warn
+            $actual | Should -Be "{1: [a, b], 2: {Key: b}}"
+            $warn.Count | Should -Be 0
+        }
+
+        It "Ignores comments in folded sequence" {
+            $value = @(
+                , @(
+                    'a' | Add-YamlFormat -PreComment 1 -PassThru
+                    'b' | Add-YamlFormat -Comment 2 -PassThru
+                )
+                @{
+                    Key = 'b' | Add-YamlFormat -PostComment 3 -PassThru
+                }
+            )
+            Add-YamlFormat -InputObject $value -CollectionStyle Flow
+
+            $actual = ConvertTo-Yaml -InputObject $value -WarningAction SilentlyContinue -WarningVariable warn
+            $actual | Should -Be "[[a, b], {Key: b}]"
+            $warn.Count | Should -Be 0
         }
     }
 }

@@ -22,9 +22,18 @@ public sealed class AddYamlFormatCommand : PSCmdlet
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
+    [Parameter]
+    public string? Comment { get; set; }
+
+    [Parameter]
+    public string? PreComment { get; set; }
+
+    [Parameter]
+    public string? PostComment { get; set; }
+
     protected override void ProcessRecord()
     {
-        YayamlFormat format = new(CollectionStyle, ScalarStyle);
+        YayamlFormat format = new(CollectionStyle, ScalarStyle, Comment, PreComment, PostComment);
         InputObject.Properties.Add(new PSNoteProperty(SchemaHelpers.YAYAML_FORMAT_ID, format));
 
         if (PassThru)

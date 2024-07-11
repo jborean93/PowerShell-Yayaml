@@ -6,10 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
+using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectGraphVisitors;
-using YamlDotNet.Core;
 
 namespace Yayaml.Module;
 
@@ -179,17 +179,33 @@ internal sealed class YayamlObjectGraphVisitor : ChainedObjectGraphVisitor
 
     public override bool Enter(IObjectDescriptor value, IEmitter emitter)
     {
-        EmitValue(SchemaHelpers.GetPSObject(value.Value), emitter, _depth);
+        EmitValue(SchemaHelpers.GetPSObject(value.Value), emitter, _depth, out var _);
         return false;
     }
 
-    private void EmitValue(PSObject? value, IEmitter emitter, int depth)
+    private void EmitValue(
+        PSObject? value,
+        IEmitter emitter,
+        int depth,
+        out bool doNotEmitInlineComment,
+        bool inFlowCollection = false,
+        bool ignoreComments = false)
     {
         value = _schema.EmitTransformer(value);
         YayamlFormat? formatProp = null;
         if (value != null)
         {
             formatProp = SchemaHelpers.GetYayamlFormatProperty(value);
+        }
+        doNotEmitInlineComment = false;
+
+        // We keep the flow bool as a separate var so we can persist the state
+        // to child nodes when serializing. The ignoreComments bool is only
+        // for the current operation (key/value in map right now).
+        ignoreComments = ignoreComments || inFlowCollection;
+        if (!ignoreComments && !string.IsNullOrWhiteSpace(formatProp?.PreComment))
+        {
+            emitter.Emit(new Comment(formatProp?.PreComment!, false));
         }
 
         object baseObj = value?.BaseObject!;  // Null check is down below
@@ -227,13 +243,21 @@ internal sealed class YayamlObjectGraphVisitor : ChainedObjectGraphVisitor
             }
         }
 
+        bool ignoreCollectionInlineComment = false;
         if (baseObj is ScalarValue scalar)
         {
-            EmitScalar(scalar, formatProp?.ScalarStyle, emitter);
+            EmitScalar(scalar, formatProp?.ScalarStyle, emitter, out var usedStyle);
+            if (!string.IsNullOrWhiteSpace(formatProp?.Comment) && (usedStyle == ScalarStyle.Folded || usedStyle == ScalarStyle.Literal))
+            {
+                doNotEmitInlineComment = true;
+                string msg = $"Scalar value '{scalar.Value}' has a style of {usedStyle} and contained inline comment but will be ignored. Inline comment cannot be used for the Folded or Literal scalar values.";
+                _cmdlet.WriteWarning(msg);
+            }
         }
         else if (baseObj is IList list)
         {
-            EmitSequence(list, formatProp?.CollectionStyle, emitter, depth - 1);
+            EmitSequence(list, formatProp?.CollectionStyle, emitter, depth - 1, inFlowCollection, out var usedStyle);
+            ignoreCollectionInlineComment = usedStyle != CollectionStyle.Flow && !string.IsNullOrWhiteSpace(formatProp?.Comment);
         }
         else if (
             IsGenericType(baseObj.GetType(), typeof(Memory<>)) ||
@@ -247,19 +271,25 @@ internal sealed class YayamlObjectGraphVisitor : ChainedObjectGraphVisitor
                 (Array)toArrayMeth.Invoke(baseObj, Array.Empty<object>())!,
                 formatProp?.CollectionStyle,
                 emitter,
-                depth - 1);
+                depth - 1,
+                inFlowCollection,
+                out var usedStyle);
+            ignoreCollectionInlineComment = usedStyle != CollectionStyle.Flow && !string.IsNullOrWhiteSpace(formatProp?.Comment);
         }
         else if (baseObj is SequenceValue sequence)
         {
-            EmitSequence(sequence, formatProp?.CollectionStyle, emitter, depth - 1);
+            EmitSequence(sequence, formatProp?.CollectionStyle, emitter, depth - 1, inFlowCollection, out var usedStyle);
+            ignoreCollectionInlineComment = usedStyle != CollectionStyle.Flow && !string.IsNullOrWhiteSpace(formatProp?.Comment);
         }
         else if (baseObj is IDictionary dict)
         {
-            EmitMap(dict, formatProp?.CollectionStyle, emitter, depth - 1);
+            EmitMap(dict, formatProp?.CollectionStyle, emitter, depth - 1, inFlowCollection, out var usedStyle);
+            ignoreCollectionInlineComment = usedStyle != CollectionStyle.Flow && !string.IsNullOrWhiteSpace(formatProp?.Comment);
         }
         else if (baseObj is MapValue map)
         {
-            EmitMap(map, formatProp?.CollectionStyle, emitter, depth - 1);
+            EmitMap(map, formatProp?.CollectionStyle, emitter, depth - 1, inFlowCollection, out var usedStyle);
+            ignoreCollectionInlineComment = usedStyle != CollectionStyle.Flow && !string.IsNullOrWhiteSpace(formatProp?.Comment);
         }
         else
         {
@@ -305,67 +335,157 @@ internal sealed class YayamlObjectGraphVisitor : ChainedObjectGraphVisitor
                 model[prop.Name] = propValue;
             }
 
-            EmitMap(model, formatProp?.CollectionStyle, emitter, depth - 1);
+            EmitMap(model, formatProp?.CollectionStyle, emitter, depth - 1, inFlowCollection, out var usedStyle);
+            ignoreCollectionInlineComment = usedStyle != CollectionStyle.Flow && !string.IsNullOrWhiteSpace(formatProp?.Comment);
+        }
+
+        if (ignoreCollectionInlineComment)
+        {
+            doNotEmitInlineComment = true;
+            string msg = "Collection value has an inline comment but will be ignored. Inline comment cannot be used on collection objects themselves, set it on the value instead.";
+            _cmdlet.WriteWarning(msg);
+        }
+        if (!ignoreComments && !string.IsNullOrWhiteSpace(formatProp?.Comment) && !doNotEmitInlineComment)
+        {
+            emitter.Emit(new Comment(formatProp?.Comment!, true));
+        }
+
+        if (!ignoreComments && !string.IsNullOrWhiteSpace(formatProp?.PostComment))
+        {
+            emitter.Emit(new Comment(formatProp?.PostComment!, false));
         }
     }
 
-    private void EmitScalar(ScalarValue value, ScalarStyle? style, IEmitter emitter)
+    private void EmitScalar(ScalarValue value, ScalarStyle? style, IEmitter emitter, out ScalarStyle usedStyle)
     {
-        YamlDotNet.Core.ScalarStyle finalStyle = (YamlDotNet.Core.ScalarStyle)(int)value.Style;
+        usedStyle = value.Style;
         if (style is not null && style != ScalarStyle.Any)
         {
-            finalStyle = (YamlDotNet.Core.ScalarStyle)(int)style;
+            usedStyle = (ScalarStyle)style;
         }
 
         Scalar toEmit = new(
             AnchorName.Empty,
             value.Tag,
             value.Value,
-            finalStyle,
+            (YamlDotNet.Core.ScalarStyle)(int)usedStyle,
             string.IsNullOrWhiteSpace(value.Tag),
             false);
         emitter.Emit(toEmit);
     }
 
-    private void EmitMap(IDictionary value, CollectionStyle? style, IEmitter emitter, int depth)
-        => EmitMap(_schema.EmitMap(value), style, emitter, depth);
+    private void EmitMap(
+        IDictionary value,
+        CollectionStyle? style,
+        IEmitter emitter,
+        int depth,
+        bool inFlowCollection,
+        out CollectionStyle usedStyle)
+        => EmitMap(_schema.EmitMap(value), style, emitter, depth, inFlowCollection, out usedStyle);
 
-    private void EmitMap(MapValue value, CollectionStyle? style, IEmitter emitter, int depth)
+    private void EmitMap(
+        MapValue value,
+        CollectionStyle? style,
+        IEmitter emitter,
+        int depth,
+        bool inFlowCollection,
+        out CollectionStyle usedStyle)
     {
-        MappingStyle finalStyle = (MappingStyle)(int)value.Style;
+        usedStyle = value.Style;
         if (style is not null && style != CollectionStyle.Any)
         {
-            finalStyle = (MappingStyle)(int)style;
+            usedStyle = (CollectionStyle)style;
         }
-        emitter.Emit(new MappingStart(AnchorName.Empty, TagName.Empty, true, finalStyle));
+        inFlowCollection = inFlowCollection || usedStyle == CollectionStyle.Flow;
+
+        emitter.Emit(new MappingStart(AnchorName.Empty, TagName.Empty, true, (MappingStyle)(int)usedStyle));
         foreach (DictionaryEntry entry in value.Values)
         {
             PSObject? entryKey = null;
             if (entry.Key != NullKey.Value)
             {
                 entryKey = SchemaHelpers.GetPSObject(entry.Key);
+                YayamlFormat? keyFormat = SchemaHelpers.GetYayamlFormatProperty(entryKey);
+
+                if (
+                    !string.IsNullOrWhiteSpace(keyFormat?.PreComment) ||
+                    !string.IsNullOrWhiteSpace(keyFormat?.Comment) ||
+                    !string.IsNullOrWhiteSpace(keyFormat?.PostComment)
+                )
+                {
+                    string keyRepr = LanguagePrimitives.ConvertTo<string>(entry.Key);
+                    _cmdlet.WriteWarning($"Key '{keyRepr}' contained comment metadata which will be ignored. Set dictionary comments on the value instead.");
+                }
             }
-            EmitValue(entryKey, emitter, depth);
-            EmitValue(SchemaHelpers.GetPSObject(entry.Value), emitter, depth);
+
+            PSObject? entryValue = SchemaHelpers.GetPSObject(entry.Value);
+            YayamlFormat? valueFormat = null;
+            if (entryValue is not null)
+            {
+                valueFormat = SchemaHelpers.GetYayamlFormatProperty(entryValue);
+            }
+
+            // A pre comment on a value must be emitted before the key to work.
+            if (!string.IsNullOrWhiteSpace(valueFormat?.PreComment) && !inFlowCollection)
+            {
+                emitter.Emit(new Comment(valueFormat?.PreComment!, false));
+            }
+
+            EmitValue(
+                entryKey,
+                emitter,
+                depth,
+                out var _,
+                ignoreComments: true,
+                inFlowCollection: inFlowCollection);
+            EmitValue(
+                entryValue,
+                emitter,
+                depth,
+                out var doNotEmitInline,
+                ignoreComments: true,
+                inFlowCollection: inFlowCollection);
+
+            if (!doNotEmitInline && !string.IsNullOrWhiteSpace(valueFormat?.Comment) && !inFlowCollection)
+            {
+                emitter.Emit(new Comment(valueFormat?.Comment!, true));
+            }
+            if (!string.IsNullOrWhiteSpace(valueFormat?.PostComment) && !inFlowCollection)
+            {
+                emitter.Emit(new Comment(valueFormat?.PostComment!, false));
+            }
         }
         emitter.Emit(new MappingEnd());
     }
 
-    private void EmitSequence(IList values, CollectionStyle? style, IEmitter emitter, int depth)
-        => EmitSequence(_schema.EmitSequence(values.Cast<object?>().ToArray()), style, emitter, depth);
+    private void EmitSequence(
+        IList values,
+        CollectionStyle? style,
+        IEmitter emitter,
+        int depth,
+        bool inFlowCollection,
+        out CollectionStyle usedStyle)
+        => EmitSequence(_schema.EmitSequence(values.Cast<object?>().ToArray()), style, emitter, depth, inFlowCollection, out usedStyle);
 
-    private void EmitSequence(SequenceValue value, CollectionStyle? style, IEmitter emitter, int depth)
+    private void EmitSequence(
+        SequenceValue value,
+        CollectionStyle? style,
+        IEmitter emitter,
+        int depth,
+        bool inFlowCollection,
+        out CollectionStyle usedStyle)
     {
-        SequenceStyle finalStyle = (SequenceStyle)(int)value.Style;
+        usedStyle = value.Style;
         if (style is not null && style != CollectionStyle.Any)
         {
-            finalStyle = (SequenceStyle)(int)style;
+            usedStyle = (CollectionStyle)style;
         }
+        inFlowCollection = inFlowCollection || usedStyle == CollectionStyle.Flow;
 
-        emitter.Emit(new SequenceStart(AnchorName.Empty, TagName.Empty, true, finalStyle));
+        emitter.Emit(new SequenceStart(AnchorName.Empty, TagName.Empty, true, (SequenceStyle)(int)usedStyle));
         foreach (object? v in value.Values)
         {
-            EmitValue(SchemaHelpers.GetPSObject(v), emitter, depth);
+            EmitValue(SchemaHelpers.GetPSObject(v), emitter, depth, out var _, inFlowCollection: inFlowCollection);
         }
         emitter.Emit(new SequenceEnd());
     }
