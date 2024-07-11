@@ -1,13 +1,13 @@
 # Changelog for Yayaml
 
-## v0.5.0 - TBD
+## v0.5.0 - 2024-07-11
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `15.3.0`
 + Added the `-Stream` parameter to `ConvertTo-Yaml` that can serialize the input objects as they are received rather than as one big object at the end
 + Implement new emitter logic to skip the multiple processing passes done on the objects to be serialized
 + Add support for serializing values with a pre, inline, or post comment
 
-## v0.4.0 - 2023-04-19
+## v0.4.0 - 2024-04-19
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `15.1.2`
 
