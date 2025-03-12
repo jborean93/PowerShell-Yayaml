@@ -124,8 +124,12 @@ internal sealed class YayamlNullTypeInspector : ITypeInspector
     public IEnumerable<IPropertyDescriptor> GetProperties(Type type, object? container)
         => Array.Empty<IPropertyDescriptor>();
 
-    public IPropertyDescriptor GetProperty(Type type, object? container, string name, bool ignoreUnmatched)
+    public IPropertyDescriptor GetProperty(Type type, object? container, string name, bool ignoreUnmatched, bool caseInsensitivePropertyMatching)
         => null!;
+
+    public string GetEnumName(Type enumType, string name) => name;
+
+    public string GetEnumValue(object enumValue) => enumValue.ToString()!;
 }
 
 [ExcludeFromCodeCoverage]
@@ -134,28 +138,28 @@ internal sealed class YayamlNullPreProcessingVisitor : PreProcessingPhaseObjectG
     public YayamlNullPreProcessingVisitor() : base(Array.Empty<IYamlTypeConverter>())
     { }
 
-    protected override bool Enter(IObjectDescriptor value)
+    protected override bool Enter(IObjectDescriptor value, ObjectSerializer serializer)
         => false;
 
-    protected override bool EnterMapping(IObjectDescriptor key, IObjectDescriptor value)
+    protected override bool EnterMapping(IObjectDescriptor key, IObjectDescriptor value, ObjectSerializer serializer)
         => false;
 
-    protected override bool EnterMapping(IPropertyDescriptor key, IObjectDescriptor value)
+    protected override bool EnterMapping(IPropertyDescriptor key, IObjectDescriptor value, ObjectSerializer serializer)
         => false;
 
-    protected override void VisitScalar(IObjectDescriptor scalar)
+    protected override void VisitScalar(IObjectDescriptor scalar, ObjectSerializer serializer)
     { }
 
-    protected override void VisitMappingStart(IObjectDescriptor mapping, Type keyType, Type valueType)
+    protected override void VisitMappingStart(IObjectDescriptor mapping, Type keyType, Type valueType, ObjectSerializer serializer)
     { }
 
-    protected override void VisitMappingEnd(IObjectDescriptor mapping)
+    protected override void VisitMappingEnd(IObjectDescriptor mapping, ObjectSerializer serializer)
     { }
 
-    protected override void VisitSequenceStart(IObjectDescriptor sequence, Type elementType)
+    protected override void VisitSequenceStart(IObjectDescriptor sequence, Type elementType, ObjectSerializer serializer)
     { }
 
-    protected override void VisitSequenceEnd(IObjectDescriptor sequence)
+    protected override void VisitSequenceEnd(IObjectDescriptor sequence, ObjectSerializer serializer)
     { }
 }
 
@@ -177,7 +181,7 @@ internal sealed class YayamlObjectGraphVisitor : ChainedObjectGraphVisitor
         _schema = schema;
     }
 
-    public override bool Enter(IObjectDescriptor value, IEmitter emitter)
+    public override bool Enter(IPropertyDescriptor? propertyDescriptor, IObjectDescriptor value, IEmitter emitter, ObjectSerializer serializer)
     {
         EmitValue(SchemaHelpers.GetPSObject(value.Value), emitter, _depth, out var _);
         return false;

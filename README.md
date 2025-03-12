@@ -25,7 +25,7 @@ See [Yayaml index](docs/en-US/Yayaml.md) for more details.
 
 These cmdlets have the following requirements
 
-* PowerShell v5.1 or newer
+* PowerShell v5.1, or 7.4+
 
 ## Examples
 

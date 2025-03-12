@@ -1,15 +1,15 @@
 @{
     DotnetProject = 'Yayaml.Module'
-    InvokeBuildVersion = '5.11.1'
-    PesterVersion = '5.5.0'
+    InvokeBuildVersion = '5.12.1'
+    PesterVersion = '5.7.1'
     BuildRequirements = @(
         @{
             ModuleName = 'Microsoft.PowerShell.PSResourceGet'
-            ModuleVersion = '1.0.4.1'
+            ModuleVersion = '1.1.1'
         }
         @{
             ModuleName = 'OpenAuthenticode'
-            RequiredVersion = '0.4.0'
+            RequiredVersion = '0.6.1'
         }
         @{
             ModuleName = 'platyPS'
