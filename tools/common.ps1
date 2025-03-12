@@ -136,7 +136,7 @@ class Manifest {
         foreach ($framework in $availableFrameworks) {
             foreach ($actualFramework in $this.TargetFrameworks) {
                 if ($actualFramework.StartsWith($framework)) {
-                    $this.TestFramework = $framework
+                    $this.TestFramework = $actualFramework
                     break
                 }
             }
@@ -238,7 +238,7 @@ Function Assert-PowerShell {
     $pwshExe = [Path]::Combine($targetFolder, "pwsh$nativeExt")
 
     if (Test-Path -LiteralPath $pwshExe) {
-        return
+        return $pwshExe
     }
 
     if ($IsWindows) {

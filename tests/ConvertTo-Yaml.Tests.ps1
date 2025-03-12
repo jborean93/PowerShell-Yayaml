@@ -333,7 +333,7 @@ public class SpanTest
             @{ Value = 'true'; Expected = 'true' }
             @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"' }
             @{ Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"''' }
-            @{ Value = '\U0001F4A9'; Expected = "'\U0001F4A9'" }
+            @{ Value = '\U0001F4A9'; Expected = "\U0001F4A9" }
         ) {
             param ($Value, $Expected)
             $actual = ConvertTo-Yaml -InputObject $Value -Schema Blank
@@ -411,7 +411,7 @@ public class SpanTest
             @{ Value = 'true'; Expected = '"true"'; Roundtrip = 'true' }
             @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))" }
             @{ Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''; Roundtrip = '"\U0001F4A9"' }
-            @{ Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"; Roundtrip = '\U0001F4A9' }
+            @{ Value = '\U0001F4A9'; Expected = "\U0001F4A9"; Roundtrip = '\U0001F4A9' }
 
             # timestamp
             @{
@@ -675,7 +675,7 @@ public class SpanTest
             @{ Value = 'true'; Expected = '"true"'; Roundtrip = 'true' }
             @{ Value = "$([Char]::ConvertFromUtf32(0x1F4A9))"; Expected = '"\U0001F4A9"'; Roundtrip = "$([Char]::ConvertFromUtf32(0x1F4A9))" }
             @{ Value = '"\U0001F4A9"'; Expected = '''"\U0001F4A9"'''; Roundtrip = '"\U0001F4A9"' }
-            @{ Value = '\U0001F4A9'; Expected = "'\U0001F4A9'"; Roundtrip = '\U0001F4A9' }
+            @{ Value = '\U0001F4A9'; Expected = "\U0001F4A9"; Roundtrip = '\U0001F4A9' }
 
             # misc
             @{

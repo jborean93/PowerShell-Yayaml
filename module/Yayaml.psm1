@@ -26,7 +26,7 @@ else {
     if (-not ('Yayaml.LoadContext' -as [type])) {
         $isReload = $false
 
-        Add-Type -Path ([System.IO.Path]::Combine($PSScriptRoot, 'bin', 'net6.0', "$moduleName.dll"))
+        Add-Type -Path ([System.IO.Path]::Combine($PSScriptRoot, 'bin', 'net8.0', "$moduleName.dll"))
     }
 
     $mainModule = [Yayaml.LoadContext]::Initialize()

@@ -111,8 +111,8 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
         }
         catch (SemanticErrorException e)
         {
-            throw new YamlParseException(e.Message, e.Start.Line, e.Start.Column,
-                e.End.Line, e.End.Column, e);
+            throw new YamlParseException(e.Message, (int)e.Start.Line, (int)e.Start.Column,
+                (int)e.End.Line, (int)e.End.Column, e);
         }
 
         List<object?> results = new();
@@ -183,7 +183,7 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
         {
             throw new YamlParseException(
                 $"Failed to unpack yaml node '{value.Value}' with tag '{value.Tag}': {e.Message}",
-                node.Start.Line, node.Start.Column, node.End.Line, node.End.Column, e);
+                (int)node.Start.Line, (int)node.Start.Column, (int)node.End.Line, (int)node.End.Column, e);
         }
     }
 }
