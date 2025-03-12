@@ -1,6 +1,6 @@
 # Changelog for Yayaml
 
-## v0.6.0 - TBD
+## v0.6.0 - 2025-03-13
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `16.3.0`
 + Raised minimum PowerSHell 7 version to 7.4
