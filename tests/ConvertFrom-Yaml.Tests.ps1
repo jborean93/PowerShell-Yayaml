@@ -891,6 +891,40 @@ dict:
             $actual['?|Plain|other'] | Should -Be '?|SingleQuoted|quoted'
         }
 
+        It "Parses mapping with custom tag handler" {
+            $schema = New-YamlSchema -ParseMap {
+                param ($Values, $Schema)
+
+                $res = $Schema.ParseMap($Values)
+                $res.PSObject.Properties.Add([PSNoteProperty]::new('Tag', $Values.Tag))
+
+                $res
+            }
+
+            $actual = ConvertFrom-Yaml -InputObject "!custom`n  key1: 1`n  key2: 2" -Schema $schema
+            $actual.Count | Should -Be 2
+            $actual.key1 | Should -Be 1
+            $actual.key2 | Should -Be 2
+            $actual.Tag | Should -Be !custom
+        }
+
+        It "Parses sequence with custom tag handler" {
+            $schema = New-YamlSchema -ParseSequence {
+                param ($Values, $Schema)
+
+                $res = $Schema.ParseSequence($Values)
+                $res.PSObject.Properties.Add([PSNoteProperty]::new('Tag', $Values.Tag))
+
+                , $res
+            }
+
+            $actual = ConvertFrom-Yaml -InputObject "!custom`n- foo`n- bar" -Schema $schema -NoEnumerate
+            $actual.Count | Should -Be 2
+            $actual[0] | Should -Be 'foo'
+            $actual[1] | Should -Be 'bar'
+            $actual.Tag | Should -Be !custom
+        }
+
         It "Parses with custom map" {
             $schema = New-YamlSchema -ParseMap {
                 param ($Value, $Schema)

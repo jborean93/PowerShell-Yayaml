@@ -5,34 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PowerShell launch",
-            "type": "coreclr",
-            "request": "launch",
-            "program": "pwsh",
-            "args": [
-                "-NoExit",
-                "-NoProfile",
-                "-Command",
-                "Import-Module ./output/Yayaml"
-            ],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        {
-            "name": "PowerShell Launch Current File",
+            "name": "PowerShell: Binary Module Interactive",
             "type": "PowerShell",
             "request": "launch",
-            "script": "${file}",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": ".NET CoreCLR Attach",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}",
-            "justMyCode": true,
+            "script": "Import-Module ./output/Yayaml; $host.EnterNestedPrompt()",
+            "createTemporaryIntegratedConsole": true,
+            "attachDotnetDebugger": true
         },
     ],
 }
