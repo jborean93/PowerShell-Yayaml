@@ -918,11 +918,11 @@ dict:
                 , $res
             }
 
-            $actual = ConvertFrom-Yaml -InputObject "!custom`n- foo`n- bar" -Schema $schema -NoEnumerate
-            $actual.Count | Should -Be 2
-            $actual[0] | Should -Be 'foo'
-            $actual[1] | Should -Be 'bar'
-            $actual.Tag | Should -Be !custom
+            $actual = ConvertFrom-Yaml -InputObject "key: !custom`n- foo`n- bar" -Schema $schema
+            $actual.key.Count | Should -Be 2
+            $actual.key[0] | Should -Be 'foo'
+            $actual.key[1] | Should -Be 'bar'
+            $actual.key.Tag | Should -Be !custom
         }
 
         It "Parses with custom map" {
