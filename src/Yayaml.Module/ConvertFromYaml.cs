@@ -148,6 +148,7 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
         {
             Values = res,
             Style = (CollectionStyle)node.Style,
+            Tag = node.Tag.ToString(),
         });
     }
 
@@ -163,6 +164,7 @@ public sealed class ConvertFromYamlCommand : PSCmdlet
         return schema.ParseSequence(new SequenceValue(res.ToArray())
         {
             Style = (CollectionStyle)node.Style,
+            Tag = node.Tag.ToString(),
         });
     }
 

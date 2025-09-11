@@ -1,9 +1,13 @@
 # Changelog for Yayaml
 
+## v0.7.0 - TBD
+
++ Added the `Tag` property to the emitted `MapValue` and `SequenceValue` for the `-Parse*` APIs on a YAML schema
+
 ## v0.6.0 - 2025-03-13
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `16.3.0`
-+ Raised minimum PowerSHell 7 version to 7.4
++ Raised minimum PowerShell 7 version to 7.4
 
 ## v0.5.0 - 2024-07-11
 

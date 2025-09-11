@@ -34,6 +34,11 @@ public sealed class MapValue
     /// </summary>
     public CollectionStyle Style { get; set; }
 
+    /// <summary>
+    /// The mapping tag if set.
+    /// </summary>
+    public string? Tag { get; set; }
+
     public MapValue()
     {
         Values = new Hashtable();
@@ -77,6 +82,11 @@ public sealed class SequenceValue
     /// The sequence style.
     /// </summary>
     public CollectionStyle Style { get; set; } = CollectionStyle.Any;
+
+    /// <summary>
+    /// The sequence tag if set.
+    /// </summary>
+    public string? Tag { get; set; }
 
     public SequenceValue()
         : this(Array.Empty<object?>())
