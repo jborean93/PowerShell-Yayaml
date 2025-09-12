@@ -1,6 +1,6 @@
 # Changelog for Yayaml
 
-## v0.7.0 - TBD
+## v0.7.0 - 2025-09-12
 
 + Added the `Tag` property to the emitted `MapValue` and `SequenceValue` for the `-Parse*` APIs on a YAML schema
 

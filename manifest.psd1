@@ -9,7 +9,7 @@
         }
         @{
             ModuleName = 'OpenAuthenticode'
-            RequiredVersion = '0.6.2'
+            RequiredVersion = '0.6.3'
         }
         @{
             ModuleName = 'platyPS'
