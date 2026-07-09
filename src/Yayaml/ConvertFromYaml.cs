@@ -10,7 +10,7 @@ using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
-namespace Yayaml.Module;
+namespace Yayaml;
 
 [Cmdlet(VerbsData.ConvertFrom, "Yaml")]
 public sealed class ConvertFromYamlCommand : PSCmdlet

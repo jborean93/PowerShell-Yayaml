@@ -3,6 +3,8 @@
 ## v0.8.0 - TBD
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `18.1.0`
++ Move cmdlet and other PowerShell cmdlet related types from the namespace `Yayaml.Module` to `Yayaml`
+  + This should have no impact to end users as `Yayaml.Module` was loaded in an ALC whereas now `Yayaml` is in the ALC
 
 ## v0.7.0 - 2025-09-12
 

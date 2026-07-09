@@ -1,5 +1,4 @@
 @{
-    DotnetProject = 'Yayaml.Module'
     InvokeBuildVersion = '5.14.23'
     PesterVersion = '5.8.0'
     BuildRequirements = @(

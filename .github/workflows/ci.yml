@@ -119,13 +119,13 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: Coverage Results (${{ matrix.info.name }})
-        path: ./output/TestResults/Coverage.xml
+        path: ./output/TestResults/Coverage.cobertura.xml
 
     - name: Upload Coverage to codecov
       if: always()
       uses: codecov/codecov-action@v7
       with:
-        files: ./output/TestResults/Coverage.xml
+        files: ./output/TestResults/Coverage.cobertura.xml
         flags: ${{ matrix.info.name }}
         token: ${{ secrets.CODECOV_TOKEN }}
 

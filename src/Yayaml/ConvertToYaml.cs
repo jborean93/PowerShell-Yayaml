@@ -11,7 +11,7 @@ using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.ObjectGraphVisitors;
 
-namespace Yayaml.Module;
+namespace Yayaml;
 
 [Cmdlet(VerbsData.ConvertTo, "Yaml")]
 [OutputType(typeof(string))]

@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Yayaml.Module/Yayaml.Module.csproj" />
     <Project Path="src/Yayaml/Yayaml.csproj" />
+    <Project Path="src/Yayaml.Loader/Yayaml.Loader.csproj" />
   </Folder>
 </Solution>

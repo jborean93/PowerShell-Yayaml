@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 
-namespace Yayaml.Module;
+namespace Yayaml;
 
 #if NET6_0_OR_GREATER
 public class YamlSchemaCompletionsAttribute : ArgumentCompletionsAttribute

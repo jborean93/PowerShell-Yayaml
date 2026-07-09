@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Yayaml.Module;
+namespace Yayaml;
 
 internal static class ReflectionHelper
 {
@@ -16,7 +16,7 @@ internal static class ReflectionHelper
         {
             if (_builder == null)
             {
-                const string assemblyName = "Yayaml.Module.Dynamic";
+                const string assemblyName = "Yayaml.Dynamic";
                 AssemblyBuilder builder = AssemblyBuilder.DefineDynamicAssembly(
                     new(assemblyName),
                     AssemblyBuilderAccess.Run);

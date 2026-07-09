@@ -1,5 +1,5 @@
 ---
-external help file: Yayaml.Module.dll-Help.xml
+external help file: Yayaml.dll-Help.xml
 Module Name: Yayaml
 online version: https://www.github.com/jborean93/PowerShell-Yayaml/blob/main/docs/en-US/ConvertFrom-Yaml.md
 schema: 2.0.0
