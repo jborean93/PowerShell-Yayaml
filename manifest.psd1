@@ -1,11 +1,11 @@
 @{
     DotnetProject = 'Yayaml.Module'
-    InvokeBuildVersion = '5.14.14'
-    PesterVersion = '5.7.1'
+    InvokeBuildVersion = '5.14.23'
+    PesterVersion = '5.8.0'
     BuildRequirements = @(
         @{
             ModuleName = 'Microsoft.PowerShell.PSResourceGet'
-            ModuleVersion = '1.1.1'
+            ModuleVersion = '1.2.0'
         }
         @{
             ModuleName = 'OpenAuthenticode'

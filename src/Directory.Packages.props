@@ -1,0 +1,26 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Testing -->
+
+    <!-- Module Deps -->
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+
+    <!-- Build/CI -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net8.0' ">
+    <PackageVersion Include="System.Management.Automation" Version="7.4.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <PackageVersion Include="PowerShellStandard.Library" Version="5.1.0" />
+    <PackageVersion Include="System.Memory" Version="4.5.5" />
+  </ItemGroup>
+
+</Project>
