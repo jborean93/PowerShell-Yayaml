@@ -6,13 +6,16 @@
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net8.0' ">
     <PackageReference Include="System.Management.Automation" PrivateAssets="all" />
+    <ProjectReference Include="../Yayaml.Loader/Yayaml.Loader.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
     <PackageReference Include="PowerShellStandard.Library" PrivateAssets="all" />
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Yayaml.Module" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
+
 </Project>

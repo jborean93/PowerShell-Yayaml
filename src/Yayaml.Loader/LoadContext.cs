@@ -1,23 +1,22 @@
 #if NET6_0_OR_GREATER
 using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
-namespace Yayaml;
+namespace Yayaml.Loader;
 
 public class LoadContext : AssemblyLoadContext
 {
     private static LoadContext? _instance;
-    private static object _sync = new object();
+    private static object _sync = new();
 
-    private Assembly _thisAssembly;
-    private AssemblyName _thisAssemblyName;
-    private Assembly _moduleAssembly;
-    private string _assemblyDir;
+    private readonly Assembly _thisAssembly;
+    private readonly AssemblyName _thisAssemblyName;
+    private readonly Assembly _moduleAssembly;
+    private readonly string _assemblyDir;
 
-    private LoadContext(string mainModulePathAssemblyPath)
-        : base (name: "Yayaml", isCollectible: false)
+    private LoadContext(string name, string mainModulePathAssemblyPath)
+        : base(name: name, isCollectible: false)
     {
         _assemblyDir = Path.GetDirectoryName(mainModulePathAssemblyPath) ?? "";
         _thisAssembly = typeof(LoadContext).Assembly;
@@ -43,7 +42,7 @@ public class LoadContext : AssemblyLoadContext
         }
     }
 
-    public static Assembly Initialize()
+    public static Assembly Initialize(string alcName)
     {
         LoadContext? instance = _instance;
         if (instance is not null)
@@ -59,11 +58,15 @@ public class LoadContext : AssemblyLoadContext
             }
 
             string assemblyPath = typeof(LoadContext).Assembly.Location;
+            string assemblyName = Path.GetFileNameWithoutExtension(assemblyPath);
+
+            string moduleName = assemblyName[..assemblyName.LastIndexOf('.')];
             string modulePath = Path.Combine(
                 Path.GetDirectoryName(assemblyPath)!,
-                $"{Path.GetFileNameWithoutExtension(assemblyPath)}.Module.dll"
+                $"{moduleName}.dll"
             );
-            _instance = new LoadContext(modulePath);
+
+            _instance = new LoadContext(alcName, modulePath);
             return _instance._moduleAssembly;
         }
     }

@@ -1,6 +1,6 @@
 using System.Management.Automation;
 
-namespace Yayaml.Module;
+namespace Yayaml;
 
 [Cmdlet(VerbsCommon.New, "YamlSchema")]
 [OutputType(typeof(YamlSchema))]
