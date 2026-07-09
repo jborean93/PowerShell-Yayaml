@@ -130,6 +130,12 @@ internal sealed class YayamlNullTypeInspector : ITypeInspector
     public string GetEnumName(Type enumType, string name) => name;
 
     public string GetEnumValue(object enumValue) => enumValue.ToString()!;
+
+    public bool HasParseMethod(Type type)
+        => false;
+
+    public object? Parse(string value, Type expectedType)
+        => null;
 }
 
 [ExcludeFromCodeCoverage]

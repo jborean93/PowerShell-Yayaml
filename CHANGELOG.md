@@ -1,5 +1,9 @@
 # Changelog for Yayaml
 
+## v0.8.0 - TBD
+
++ Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `18.1.0`
+
 ## v0.7.0 - 2025-09-12
 
 + Added the `Tag` property to the emitted `MapValue` and `SequenceValue` for the `-Parse*` APIs on a YAML schema
