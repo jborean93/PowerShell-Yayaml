@@ -5,12 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PowerShell: Binary Module Interactive",
+            "name": "PowerShell & .NET Debug Session",
             "type": "PowerShell",
             "request": "launch",
-            "script": "Import-Module ./output/Yayaml; $host.EnterNestedPrompt()",
+            "cwd": "${cwd}",
+            "script": "${workspaceFolder}/tools/LaunchScript.ps1 -NoExit",
+            "attachDotnetDebugger": true,
             "createTemporaryIntegratedConsole": true,
-            "attachDotnetDebugger": true
+        },
+        {
+            "name": ".NET Debug Session",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "pwsh",
+            "args": [
+                "-NoExit",
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/LaunchScript.ps1"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
         },
     ],
 }
