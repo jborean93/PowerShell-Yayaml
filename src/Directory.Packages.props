@@ -8,7 +8,7 @@
     <!-- Testing -->
 
     <!-- Module Deps -->
-    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
 
     <!-- Build/CI -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
