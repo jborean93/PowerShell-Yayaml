@@ -74,6 +74,8 @@
         'Add-YamlFormat'
         'ConvertFrom-Yaml'
         'ConvertTo-Yaml'
+        'Export-Yaml'
+        'Import-Yaml'
         'New-YamlSchema'
     )
 
