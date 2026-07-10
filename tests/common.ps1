@@ -9,3 +9,18 @@ if (-not (Get-Variable IsWindows -ErrorAction SilentlyContinue)) {
     # Running WinPS so guaranteed to be Windows.
     Set-Variable -Name IsWindows -Value $true -Scope Global
 }
+
+Function Global:Complete {
+    [OutputType([System.Management.Automation.CompletionResult])]
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [string]
+        $Expression
+    )
+
+    [System.Management.Automation.CommandCompletion]::CompleteInput(
+        $Expression,
+        $Expression.Length,
+        $null).CompletionMatches
+}

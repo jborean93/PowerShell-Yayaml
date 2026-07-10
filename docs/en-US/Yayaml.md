@@ -20,6 +20,12 @@ Converts a YAML-formatted string to an object usable in PowerShell.
 ### [ConvertTo-Yaml](ConvertTo-Yaml.md)
 Converts an object to a YAML-formatted string.
 
+### [Export-Yaml](Export-Yaml.md)
+Exports PowerShell objects to YAML-formatted files.
+
+### [Import-Yaml](Import-Yaml.md)
+Imports YAML data from a file and converts it to PowerShell objects.
+
 ### [New-YamlSchema](New-YamlSchema.md)
 Creates a YAML schema definition.
 

@@ -40,7 +40,6 @@ internal static class ReflectionHelper
     {
         Type objType = obj.GetType();
         string delegateId = $"{objType.FullName}{spanProp.Name}_Get";
-        Console.WriteLine(delegateId);
 
         MethodInfo? toArrayMeth;
         if (!_spanDelegates.TryGetValue(delegateId, out toArrayMeth))
