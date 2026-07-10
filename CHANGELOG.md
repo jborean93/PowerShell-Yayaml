@@ -1,6 +1,6 @@
 # Changelog for Yayaml
 
-## v0.8.0 - TBD
+## v0.8.0 - 2026-07-10
 
 + Updated [YamlDotNet](https://github.com/aaubry/YamlDotNet) dependency to `18.1.0`
 + Move cmdlet and other PowerShell cmdlet related types from the namespace `Yayaml.Module` to `Yayaml`
